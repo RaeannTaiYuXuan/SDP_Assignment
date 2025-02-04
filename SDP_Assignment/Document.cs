@@ -118,5 +118,16 @@ namespace SDP_Assignment
             Approver = null;
             Console.WriteLine($"Document '{Title}' has been rejected.");
         }
+
+        public virtual void Display()
+        {
+            Console.WriteLine("====================================");
+            Console.WriteLine($"Title: {Title}");
+            Console.WriteLine($"Header: {Header}");
+            Console.WriteLine("Content:");
+            Console.WriteLine(Content);
+            Console.WriteLine($"Footer: {Footer}");
+            Console.WriteLine("====================================");
+        }
     }
 }
