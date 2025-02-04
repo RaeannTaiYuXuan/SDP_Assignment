@@ -1,4 +1,5 @@
-﻿using SDP_Assignment.RAEANN;
+﻿using SDP_Assignment.Jason;
+using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
 
@@ -66,6 +67,8 @@ namespace SDP_Assignment
             get { return isUnderReview; }
             private set { isUnderReview = value; }
         }
+
+        public IConversionStrategy ConversionStrategy { get; set; }
 
         public Document(string title, string header, string footer, User owner)
         {
