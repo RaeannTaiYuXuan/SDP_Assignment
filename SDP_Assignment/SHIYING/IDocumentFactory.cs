@@ -10,6 +10,6 @@ namespace SDP_Assignment.SHIYING
 {
     public interface IDocumentFactory
     {
-        Document CreateDocument(string title, string content, User owner);
+        IDocument CreateDocument(string title, string content, User owner);
     }
 }
