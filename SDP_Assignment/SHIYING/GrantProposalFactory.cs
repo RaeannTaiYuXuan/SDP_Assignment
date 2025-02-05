@@ -11,15 +11,10 @@ namespace SDP_Assignment.SHIYING
 {
     public class GrantProposalFactory : IDocumentFactory
     {
-        public Document CreateDocument(string title, string content, User owner)
+        public IDocument CreateDocument(string title, string content, User owner)
         {
-            return new Document(
-                title,
-                "GRANT PROPOSAL HEADER",
-                "Grant Proposal Footer",
-                owner
-            )
-            { Content = content };
+            return new GrantProposal(title, content, owner);
         }
     }
 }
+
