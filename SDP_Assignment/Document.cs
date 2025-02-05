@@ -1,4 +1,5 @@
-﻿using SDP_Assignment.RAEANN;
+﻿using SDP_Assignment.Jason;
+using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
 
@@ -67,6 +68,8 @@ namespace SDP_Assignment
             private set { isUnderReview = value; }
         }
 
+        public IConversionStrategy ConversionStrategy { get; set; }
+
         public Document(string title, string header, string footer, User owner)
         {
             Title = title;
@@ -117,6 +120,17 @@ namespace SDP_Assignment
             IsUnderReview = false;
             Approver = null;
             Console.WriteLine($"Document '{Title}' has been rejected.");
+        }
+
+        public virtual void Display()
+        {
+            Console.WriteLine("====================================");
+            Console.WriteLine($"Title: {Title}");
+            Console.WriteLine($"Header: {Header}");
+            Console.WriteLine("Content:");
+            Console.WriteLine(Content);
+            Console.WriteLine($"Footer: {Footer}");
+            Console.WriteLine("====================================");
         }
     }
 }
