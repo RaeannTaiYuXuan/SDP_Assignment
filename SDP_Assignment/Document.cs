@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace SDP_Assignment
 {
-    public class Document : IDocument
+    public abstract class Document : IDocument
     {
         private string title;
         private string header;
@@ -16,6 +16,7 @@ namespace SDP_Assignment
         private List<User> collaborators;
         private User approver;
         private bool isUnderReview;
+
         public string Feedback { get; private set; }  // New property to store feedback
 
         // Add the Converter Property
