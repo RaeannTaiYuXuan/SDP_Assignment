@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 // Factory Pattern
 
-namespace SDP_Assignment.Jason
+namespace SDP_Assignment.SHIYING
 {
     public class TechnicalReportFactory : IDocumentFactory
     {
