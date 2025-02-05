@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace SDP_Assignment
 {
-    public abstract class Document : IDocument
+    public abstract class Document 
     {
         private string title;
         private string header;
