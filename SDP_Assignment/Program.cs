@@ -7,6 +7,7 @@ using SDP_Assignment;
 using System.Runtime.CompilerServices;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
+using SDP_Assignment.Jason;
 
 class Program
 {
@@ -313,13 +314,25 @@ class Program
     {
         Console.Write("Enter document title: ");
         string title = Console.ReadLine();
-        Console.Write("Enter document header: ");
-        string header = Console.ReadLine();
-        Console.Write("Enter document footer: ");
-        string footer = Console.ReadLine();
-        Document newDoc = new Document(title, header, footer, loggedInUser);
-        documents.Add(newDoc);
-        Console.WriteLine($"Document '{title}' created successfully.");
+        Console.WriteLine("\nSelect document type:");
+        Console.WriteLine("1. Technical Report");
+        Console.WriteLine("2. Grant Proposal");
+        Console.Write("Select an option: ");
+
+        string type = Console.ReadLine() switch
+        {
+            "1" => "technical",
+            "2" => "grant",
+            _ => throw new ArgumentException("Invalid choice")
+        };
+
+        Console.Write("Enter content: ");
+        string content = Console.ReadLine();
+
+        var factory = DocumentCreator.GetFactory(type);
+        Document doc = factory.CreateDocument(title, content, loggedInUser);
+        documents.Add(doc);
+        Console.WriteLine($"{type.ToUpper()} document '{title}' created successfully.");
     }
 
     static void ManageDocument(CommandManager commandManager)
@@ -512,35 +525,29 @@ class Program
 
     //====================================================================================== file type ======================================================================================
 
+
     static void SetFileConversionType(Document document)
     {
         if (document.IsUnderReview)
         {
-            Console.WriteLine("Cannot change file conversion type while the document is under review.");
+            Console.WriteLine("Cannot change conversion strategy while under review.");
             return;
         }
 
-        Console.WriteLine("Select file conversion type:");
+        Console.WriteLine("Select conversion strategy:");
         Console.WriteLine("1. PDF");
-        Console.WriteLine("2. Microsoft Word");
-        Console.Write("Select an option: ");
-
+        Console.WriteLine("2. Word");
         string choice = Console.ReadLine();
 
-        switch (choice)
+        IConversionStrategy strategy = choice switch
         {
-            case "1":
-                document.Converter = new PDFConverter();
-                Console.WriteLine("File conversion type set to PDF.");
-                break;
-            case "2":
-                document.Converter = new WordConverter();
-                Console.WriteLine("File conversion type set to Microsoft Word.");
-                break;
-            default:
-                Console.WriteLine("Invalid option.");
-                break;
-        }
+            "1" => new PDFConversionStrategy(),
+            "2" => new WordConversionStrategy(),
+            _ => throw new ArgumentException("Invalid choice")
+        };
+
+        document.ConversionStrategy = strategy;
+        Console.WriteLine("Conversion strategy updated successfully.");
     }
 
 

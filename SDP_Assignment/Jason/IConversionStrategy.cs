@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SDP_Assignment.RAEANN
+// Strategy Pattern
+namespace SDP_Assignment.Jason
 {
-    public interface IConverter
+    public interface IConversionStrategy
     {
-        void Convert(Document document);
+        string Convert(Document document);
     }
 }
