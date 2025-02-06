@@ -12,13 +12,8 @@ namespace SDP_Assignment.SHIYING
     {
         public Document CreateDocument(string title, string content, User owner)
         {
-            return new Document(
-                title,
-                "TECHNICAL REPORT HEADER",
-                "Technical Report Footer",
-                owner
-            )
-            { Content = content };
+            return new TechnicalReport(title, content, owner);
         }
     }
 }
+
