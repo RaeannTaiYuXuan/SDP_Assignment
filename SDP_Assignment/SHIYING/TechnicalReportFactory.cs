@@ -6,19 +6,14 @@ using System.Threading.Tasks;
 
 // Factory Pattern
 
-namespace SDP_Assignment.Jason
+namespace SDP_Assignment.SHIYING
 {
     public class TechnicalReportFactory : IDocumentFactory
     {
         public Document CreateDocument(string title, string content, User owner)
         {
-            return new Document(
-                title,
-                "TECHNICAL REPORT HEADER",
-                "Technical Report Footer",
-                owner
-            )
-            { Content = content };
+            return new TechnicalReport(title, content, owner);
         }
     }
 }
+

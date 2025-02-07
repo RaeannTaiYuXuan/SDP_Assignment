@@ -2,12 +2,13 @@
 // Main Program with Extended Document Management
 // =======================
 
-using SDP_Assignment.RAEANN;
 using SDP_Assignment;
-using System.Runtime.CompilerServices;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.ExceptionServices;
 using SDP_Assignment.Jason;
+using SDP_Assignment.SHIYING;
+using SDP_Assignment.RAEANN;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 class Program
 {
@@ -17,8 +18,6 @@ class Program
 
     static void Main(string[] args)
     {
-
-        //====================================================================================== first display ==================================================================================
         bool running = true;
         while (running)
         {
@@ -60,9 +59,6 @@ class Program
         }
     }
 
-
-    //====================================================================================== methods for users =======================================================================
-
     static void CreateUser()
     {
         Console.Write("Enter user name: ");
@@ -89,8 +85,6 @@ class Program
         foreach (var user in users)
             Console.WriteLine($"- {user.Name}");
     }
-
-    //====================================================================================== methods for documents ===================================================================
 
     static void ListDocuments()
     {
@@ -124,7 +118,7 @@ class Program
         {
             foreach (var doc in documents)
             {
-                string format = doc.Converter != null ? doc.Converter.GetType().Name.Replace("Converter", "") : "Not Set";
+                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
             }
         }
@@ -133,7 +127,6 @@ class Program
             Console.WriteLine("No documents available.");
         }
     }
-
 
     static void ListOwnedDocuments()
     {
@@ -145,7 +138,7 @@ class Program
         {
             foreach (var doc in ownedDocs)
             {
-                string format = doc.Converter != null ? doc.Converter.GetType().Name.Replace("Converter", "") : "Not Set";
+                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Format: {format})");
             }
         }
@@ -155,111 +148,11 @@ class Program
         }
     }
 
-    static void ShowDocumentContents(Document document)
-    {
-        Console.WriteLine($"Title: {document.Title}");
-        Console.WriteLine($"Header: {document.Header}");
-        Console.WriteLine($"Content: {document.Content}");
-        Console.WriteLine($"Footer: {document.Footer}");
-    }
-
-    static void ListUserDocuments()
-    {
-        var userDocs = documents.Where(d => d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser) || d.Approver == loggedInUser);
-        Console.WriteLine("\nYour Documents:");
-
-        foreach (var doc in userDocs)
-        {
-            Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name})");
-
-            if (doc.Collaborators.Any())
-            {
-                Console.WriteLine("  Collaborators:");
-                foreach (var collaborator in doc.Collaborators)
-                {
-                    Console.WriteLine($"    - {collaborator.Name}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("  No collaborators.");
-            }
-
-            if (doc.Approver != null)
-            {
-                Console.WriteLine($"  Approver: {doc.Approver.Name}");
-            }
-        }
-    }
-
-    static Document SelectUserDocument()
-    {
-        // Include documents where the logged-in user is the Owner, Collaborator, or Approver
-        var userDocs = documents.Where(d => d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser) || d.Approver == loggedInUser).ToList();
-
-        if (!userDocs.Any())
-        {
-            Console.WriteLine("You have no documents to manage.");
-            return null;
-        }
-
-        Console.WriteLine("\nSelect a document by title:");
-        foreach (var doc in userDocs)
-        {
-            Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name})");
-        }
-
-        Console.Write("Enter document title: ");
-        string title = Console.ReadLine();
-
-        Document selectedDoc = userDocs.FirstOrDefault(d => d.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
-
-        if (selectedDoc == null)
-        {
-            Console.WriteLine("Document not found or you do not have access.");
-        }
-
-        return selectedDoc;
-
-    }
-
-    static void EditDocument(Document document, CommandManager commandManager)
-    {
-        if (document.IsUnderReview)
-        {
-            Console.WriteLine("This document is under review. No edits are allowed.");
-        }
-        else if (document.Owner == loggedInUser || document.Collaborators.Contains(loggedInUser))
-        {
-            if (!string.IsNullOrEmpty(document.Feedback))
-            {
-                Console.WriteLine($"Feedback from approver: {document.Feedback}");
-            }
-
-            Console.Write("Enter new content: ");
-            string newContent = Console.ReadLine();
-            ICommand editCommand = new EditDocumentCommand(document, newContent);
-            commandManager.ExecuteCommand(editCommand);
-
-            document.ClearFeedback();  // Clear feedback after editing
-            Console.WriteLine("Document updated successfully, and feedback cleared.");
-        }
-        else
-        {
-            Console.WriteLine("You do not have permission to edit this document.");
-        }
-    }
-
-
-    //====================================================================================== user menu when logged in================================================================
-
     static void UserMenu()
     {
-        CommandManager commandManager = new CommandManager();
-        NotifyPushedBackDocuments();  // Notify users about pushed-back documents
+        NotifyPushedBackDocuments();
 
         bool userRunning = true;
-
         while (userRunning)
         {
             Console.WriteLine("\n===== User Menu =====");
@@ -278,10 +171,10 @@ class Program
                     CreateDocument();
                     break;
                 case "2":
-                    ManageDocument(commandManager);
+                    ManageDocument();
                     break;
                 case "3":
-                    ListUserDocuments();
+                    ListOwnedDocuments();
                     break;
                 case "4":
                     userRunning = false;
@@ -295,8 +188,6 @@ class Program
         }
     }
 
-    //====================================================================================== nottify pushed back documents =================================================================
-
     static void NotifyPushedBackDocuments()
     {
         var pushedBackDocs = documents.Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser)) && !string.IsNullOrEmpty(d.Feedback));
@@ -306,9 +197,6 @@ class Program
             Console.WriteLine($"\nNotification: Your document '{doc.Title}' has been pushed back with comments: {doc.Feedback}");
         }
     }
-
-
-    //====================================================================================== creating, managing and approval methods =======================================================
 
     static void CreateDocument()
     {
@@ -335,107 +223,98 @@ class Program
         Console.WriteLine($"{type.ToUpper()} document '{title}' created successfully.");
     }
 
-    static void ManageDocument(CommandManager commandManager)
+    static void ManageDocument()
     {
-        Document docToManage = SelectUserDocument();
-        if (docToManage != null)
+        Document doc = SelectUserDocument();
+        if (doc == null)
+            return;
+
+        bool managing = true;
+        while (managing)
         {
-            bool managing = true;
-            while (managing)
+            Console.WriteLine("\n===== Manage Document =====");
+            Console.WriteLine("1. Edit");
+            Console.WriteLine("2. Submit for Review");
+            Console.WriteLine("3. Push Back");
+            Console.WriteLine("4. Approve");
+            Console.WriteLine("5. Reject");
+            Console.WriteLine("6. Add Collaborator");
+            Console.WriteLine("7. Set File Conversion Type");
+            Console.WriteLine("8. Convert File");
+            Console.WriteLine("9. Stop Managing Document");
+            Console.Write("Select an option: ");
+
+            string choice = Console.ReadLine();
+            Console.WriteLine();
+
+            switch (choice)
             {
-                Console.WriteLine("\n===== Manage Document =====");
-                Console.WriteLine("1. Edit");
-                Console.WriteLine("2. Submit for Review");
-                Console.WriteLine("3. Push Back");
-                Console.WriteLine("4. Approve");
-                Console.WriteLine("5. Reject");
-                Console.WriteLine("6. Add Collaborator");
-                Console.WriteLine("7. Set File Conversion Type");
-                Console.WriteLine("8. Produce Converted File");
-                Console.WriteLine("9. Show Document Contents");
-                Console.WriteLine("10. Stop Managing Document");
-                Console.Write("Select an option: ");
-
-                string choice = Console.ReadLine();
-                Console.WriteLine();
-
-                switch (choice)
-                {
-                    case "1":
-                        EditDocument(docToManage, commandManager);  // Refactored to separate method
-                        break;
-
-                    case "2":
-                        SubmitForReview(docToManage);
-                        break;
-
-                    case "3":
-                        PushBackDocument(docToManage);
-                        break;
-
-                    case "4":
-                        ApproveDocument(docToManage);
-                        break;
-
-                    case "5":
-                        RejectDocument(docToManage);
-                        break;
-
-                    case "6":
-                        AddCollaborator(docToManage, commandManager);  
-                        break;
-
-                    case "7":
-                        SetFileConversionType(docToManage);
-                        break;
-
-                    case "8":
-                        ProduceConvertedFile(docToManage, commandManager);
-                        break;
-
-                    case "9":
-                        ShowDocumentContents(docToManage);
-                        break;
-
-                    case "10":
-                        managing = false;
-                        break;
-
-                    default:
-                        Console.WriteLine("Invalid option. Please try again.");
-                        break;
-                }
+                case "1":
+                    EditDocument(doc);
+                    break;
+                case "2":
+                    SubmitForReview(doc);
+                    break;
+                case "3":
+                    PushBackDocument(doc);
+                    break;
+                case "4":
+                    ApproveDocument(doc);
+                    break;
+                case "5":
+                    RejectDocument(doc);
+                    break;
+                case "6":
+                    AddCollaborator(doc);
+                    break;
+                case "7":
+                    SetFileConversionType(doc);
+                    break;
+                case "8":
+                    ConvertFile(doc);
+                    break;
+                case "9":
+                    managing = false;
+                    break;
+                default:
+                    Console.WriteLine("Invalid option. Please try again.");
+                    break;
             }
-        }
-        else
-        {
-            Console.WriteLine("Document not found or you do not have access.");
         }
     }
 
-    //====================================================================================== adding of collaborators =================================================================
-    static void AddCollaborator(Document document, CommandManager commandManager)
+    static void EditDocument(Document document)
     {
-        if (document.Owner == loggedInUser)
+        if (document.IsUnderReview)
         {
-            Console.Write("Enter collaborator name: ");
-            string collaboratorName = Console.ReadLine();
-            User collaborator = users.FirstOrDefault(u => u.Name.Equals(collaboratorName, StringComparison.OrdinalIgnoreCase));
+            Console.WriteLine("This document is under review. No edits are allowed.");
+            return;
+        }
 
-            if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
-            {
-                ICommand addCollaboratorCommand = new AddCollaboratorCommand(document, collaborator);
-                commandManager.ExecuteCommand(addCollaboratorCommand);
-                Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
-            }
-            else
-            {
-                Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
-            }
+        Console.Write("Enter new content: ");
+        string newContent = Console.ReadLine();
+        document.EditContent(newContent);
+    }
+
+    static void AddCollaborator(Document document)
+    {
+        if (document.Owner != loggedInUser)
+        {
+            Console.WriteLine("Only the owner can add collaborators.");
+            return;
+        }
+
+        Console.Write("Enter collaborator name: ");
+        string collaboratorName = Console.ReadLine();
+        User collaborator = users.FirstOrDefault(u => u.Name.Equals(collaboratorName, StringComparison.OrdinalIgnoreCase));
+
+        if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
+        {
+            document.AddCollaborator(collaborator);
         }
         else
         {
-            Console.WriteLine("Only the owner can add collaborators.");
+            Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
         }
     }
 
@@ -443,7 +322,7 @@ class Program
     {
         if (document.IsUnderReview)
         {
-            Console.WriteLine($"Document '{document.Title}' is already under review and cannot be resubmitted.");
+            Console.WriteLine("Document is already under review.");
             return;
         }
 
@@ -454,7 +333,6 @@ class Program
         if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
         {
             document.SubmitForApproval(approver);
-            Console.WriteLine($"Document '{document.Title}' is now under review by {approver.Name}.");
         }
         else
         {
@@ -462,78 +340,46 @@ class Program
         }
     }
 
-    //====================================================================================== only approver can do this ======================================================================
-
     static void PushBackDocument(Document document)
     {
-        if (document.IsUnderReview)
+        if (document.IsUnderReview && document.Approver == loggedInUser)
         {
-            if (document.Approver == loggedInUser)
-            {
-                Console.Write("Enter comments for push back: ");
-                string comments = Console.ReadLine();
-                document.PushBack(comments);
-            }
-            else
-            {
-                Console.WriteLine("Only the approver can push back this document.");
-            }
+            Console.Write("Enter comments for push back: ");
+            string comments = Console.ReadLine();
+            document.PushBack(comments);
         }
         else
         {
-            Console.WriteLine("Document is not under review.");
+            Console.WriteLine("Only the approver can push back this document or document is not under review.");
         }
     }
 
     static void ApproveDocument(Document document)
     {
-        if (document.IsUnderReview)
+        if (document.IsUnderReview && document.Approver == loggedInUser)
         {
-            if (document.Approver == loggedInUser)
-            {
-                document.Approve();
-            }
-            else
-            {
-                Console.WriteLine("Only the approver can approve this document.");
-            }
+            document.Approve();
         }
         else
         {
-            Console.WriteLine("Document is not under review.");
+            Console.WriteLine("Only the approver can approve this document or document is not under review.");
         }
     }
 
     static void RejectDocument(Document document)
     {
-        if (document.IsUnderReview)
+        if (document.IsUnderReview && document.Approver == loggedInUser)
         {
-            if (document.Approver == loggedInUser)
-            {
-                document.Reject();
-            }
-            else
-            {
-                Console.WriteLine("Only the approver can reject this document.");
-            }
+            document.Reject();
         }
         else
         {
-            Console.WriteLine("Document is not under review.");
+            Console.WriteLine("Only the approver can reject this document or document is not under review.");
         }
     }
 
-    //====================================================================================== file type ======================================================================================
-
-
     static void SetFileConversionType(Document document)
     {
-        if (document.IsUnderReview)
-        {
-            Console.WriteLine("Cannot change conversion strategy while under review.");
-            return;
-        }
-
         Console.WriteLine("Select conversion strategy:");
         Console.WriteLine("1. PDF");
         Console.WriteLine("2. Word");
@@ -550,14 +396,12 @@ class Program
         Console.WriteLine("Conversion strategy updated successfully.");
     }
 
-
-    static void ProduceConvertedFile(Document document, CommandManager commandManager)
+    static void ConvertFile(Document document)
     {
-
-        if (document.Converter != null)
+        if (document.ConversionStrategy != null)
         {
-            ICommand convertCommand = new ConvertDocumentCommand(document, document.Converter);
-            commandManager.ExecuteCommand(convertCommand);
+            string result = document.ConversionStrategy.Convert(document);
+            Console.WriteLine(result);
         }
         else
         {
@@ -565,11 +409,25 @@ class Program
         }
     }
 
+    static Document SelectUserDocument()
+    {
+        var userDocs = documents.Where(d => d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser) || d.Approver == loggedInUser).ToList();
 
+        if (!userDocs.Any())
+        {
+            Console.WriteLine("You have no documents to manage.");
+            return null;
+        }
 
-   
+        Console.WriteLine("\nSelect a document by title:");
+        foreach (var doc in userDocs)
+        {
+            Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name})");
+        }
 
+        Console.Write("Enter document title: ");
+        string title = Console.ReadLine();
 
-   
-
+        return userDocs.FirstOrDefault(d => d.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+    }
 }

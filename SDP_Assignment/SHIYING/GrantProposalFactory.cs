@@ -4,21 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 // Factory Pattern
 
-namespace SDP_Assignment.Jason
+namespace SDP_Assignment.SHIYING
 {
     public class GrantProposalFactory : IDocumentFactory
     {
         public Document CreateDocument(string title, string content, User owner)
         {
-            return new Document(
-                title,
-                "GRANT PROPOSAL HEADER",
-                "Grant Proposal Footer",
-                owner
-            )
-            { Content = content };
+            return new GrantProposal(title, content, owner);
         }
     }
 }
+

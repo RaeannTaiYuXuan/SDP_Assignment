@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace SDP_Assignment.RAEANN
 {
-    public interface IConverter
+    public interface INotifiable
     {
-        void Convert(Document document);
+        void Notify(string message);
     }
+
 }

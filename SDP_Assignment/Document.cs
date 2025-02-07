@@ -1,11 +1,12 @@
 ﻿using SDP_Assignment.Jason;
+using SDP_Assignment.SHIYING;
 using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
 
 namespace SDP_Assignment
 {
-    public class Document
+    public abstract class Document 
     {
         private string title;
         private string header;
@@ -15,10 +16,12 @@ namespace SDP_Assignment
         private List<User> collaborators;
         private User approver;
         private bool isUnderReview;
-        public string Feedback { get; private set; }  // New property to store feedback
+        public string Feedback { get; private set; }
 
-        // Add the Converter Property
-        public IConverter Converter { get; set; }  // This allows setting PDF or Word converter dynamically
+        
+
+        // Observer list
+        private List<INotifiable> observers = new List<INotifiable>();
 
         public string Title
         {
@@ -35,7 +38,12 @@ namespace SDP_Assignment
         public string Content
         {
             get { return content; }
-            set { content = value; }
+            set
+            {
+                content = value;
+                NotifyObservers($"Document '{Title}' has been edited.");
+                ClearFeedback();
+            }
         }
 
         public string Footer
@@ -47,19 +55,35 @@ namespace SDP_Assignment
         public User Owner
         {
             get { return owner; }
-            set { owner = value; }
+            set
+            {
+                owner = value;
+                AttachObserver(owner);
+            }
         }
 
         public List<User> Collaborators
         {
             get { return collaborators; }
-            set { collaborators = value; }
+            set
+            {
+                collaborators = value;
+                foreach (var collaborator in collaborators)
+                {
+                    AttachObserver(collaborator);
+                }
+            }
         }
 
         public User Approver
         {
             get { return approver; }
-            private set { approver = value; }
+            private set
+            {
+                approver = value;
+                if (approver != null)
+                    AttachObserver(approver);
+            }
         }
 
         public bool IsUnderReview
@@ -79,16 +103,43 @@ namespace SDP_Assignment
             Collaborators = new List<User>();
             Content = string.Empty;
             IsUnderReview = false;
-            Converter = null;  // Initialize Converter as null, to be set later
+
+            AttachObserver(owner);  // Automatically add the owner as an observer
         }
 
+        // Observer Methods
+        public void AttachObserver(INotifiable observer)
+        {
+            if (!observers.Contains(observer))
+            {
+                observers.Add(observer);
+            }
+        }
+
+        public void DetachObserver(INotifiable observer)
+        {
+            if (observers.Contains(observer))
+            {
+                observers.Remove(observer);
+            }
+        }
+
+        private void NotifyObservers(string message)
+        {
+            foreach (var observer in observers)
+            {
+                observer.Notify(message);
+            }
+        }
+
+        // Document State Management Methods
         public void SubmitForApproval(User approver)
         {
             if (approver != null && approver != Owner && !Collaborators.Contains(approver))
             {
                 Approver = approver;
                 IsUnderReview = true;
-                Console.WriteLine($"Document '{Title}' submitted for approval to {approver.Name}.");
+                NotifyObservers($"Document '{Title}' submitted for approval to {approver.Name}.");
             }
             else
             {
@@ -96,31 +147,44 @@ namespace SDP_Assignment
             }
         }
 
-
         public void Approve()
         {
             IsUnderReview = false;
-            Console.WriteLine($"Document '{Title}' has been approved.");
+            NotifyObservers($"Document '{Title}' has been approved by {Approver.Name}.");
         }
 
         public void PushBack(string comments)
         {
             IsUnderReview = false;
-            Feedback = comments;  // Store feedback when document is pushed back
-            Console.WriteLine($"Document '{Title}' has been pushed back with comments: {comments}");
+            Feedback = comments;
+            NotifyObservers($"Document '{Title}' has been pushed back with comments: {comments}");
         }
 
         public void ClearFeedback()
         {
-            Feedback = null;  // Clear feedback when the document is edited
+            Feedback = null;
         }
 
         public void Reject()
         {
             IsUnderReview = false;
-            Approver = null;
-            Console.WriteLine($"Document '{Title}' has been rejected.");
+            NotifyObservers($"Document '{Title}' has been rejected by {Approver.Name}.");
         }
+
+
+        public void EditContent(string newContent)
+        {
+            if (IsUnderReview)
+            {
+                Console.WriteLine("Cannot edit the document while it's under review.");
+                return;
+            }
+
+            Content = newContent;
+            ClearFeedback();  // Clear any previous feedback
+            NotifyObservers($"Document '{Title}' has been edited.");
+        }
+
 
         public virtual void Display()
         {
@@ -131,6 +195,16 @@ namespace SDP_Assignment
             Console.WriteLine(Content);
             Console.WriteLine($"Footer: {Footer}");
             Console.WriteLine("====================================");
+        }
+
+        public void AddCollaborator(User collaborator)
+        {
+            if (!Collaborators.Contains(collaborator))
+            {
+                Collaborators.Add(collaborator);
+                AttachObserver(collaborator);
+                NotifyObservers($"Collaborator '{collaborator.Name}' added to document '{Title}'.");
+            }
         }
     }
 }
