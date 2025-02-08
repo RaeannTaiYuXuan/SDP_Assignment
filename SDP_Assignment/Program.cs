@@ -5,6 +5,7 @@
 using SDP_Assignment;
 using SDP_Assignment.Jason;
 using SDP_Assignment.SHIYING;
+using SDP_Assignment.MingQi;
 using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
@@ -195,7 +196,7 @@ class Program
 
         foreach (var doc in pushedBackDocs)
         {
-            Console.WriteLine($"\nNotification: Your document '{doc.Title}' has been pushed back with comments: {doc.Feedback}");
+            Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
         }
     }
 
@@ -286,15 +287,23 @@ class Program
 
     static void EditDocument(Document document)
     {
+
         if (document.IsUnderReview)
         {
-            Console.WriteLine("This document is under review. No edits are allowed.");
+            Console.WriteLine("Cannot edit - document is under review.");
             return;
         }
 
-        Console.Write("Enter new content: ");
-        string newContent = Console.ReadLine();
-        document.EditContent(newContent);
+        if (document.Owner == loggedInUser || document.Collaborators.Contains(loggedInUser))
+        {
+            Console.Write("Enter new content: ");
+            string newContent = Console.ReadLine();
+            document.EditContent(newContent);
+        }
+        else
+        {
+            Console.WriteLine("Cannot edit - you are not a collaborator.");
+        }
     }
 
     static void AddCollaborator(Document document)
@@ -311,7 +320,7 @@ class Program
 
         if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
         {
-            document.AddCollaborator(collaborator);
+            document.AddCollaborator(loggedInUser, collaborator);
         }
         else
         {
@@ -321,29 +330,56 @@ class Program
 
     static void SubmitForReview(Document document)
     {
-        if (document.IsUnderReview)
+        if (!document.Collaborators.Contains(loggedInUser) && document.Owner != loggedInUser)
         {
-            Console.WriteLine("Document is already under review.");
+            Console.WriteLine("Cannot submit for review - you are not a collaborator or the owner.");
             return;
         }
 
-        Console.Write("Enter approver name: ");
-        string approverName = Console.ReadLine();
-        User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
-
-        if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
+        if (document.IsRejected)
         {
-            document.SubmitForApproval(approver);
+            Console.Write("Enter new approver name: ");
+            string approverName = Console.ReadLine();
+            User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
+
+            if (approver != null && approver != loggedInUser && approver != document.Owner && !document.Collaborators.Contains(approver))
+            {
+                document.SubmitForApproval(approver);
+            }
+            else
+            {
+                Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+            }
         }
         else
         {
-            Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+            if (document.Approver == null)
+            {
+                Console.Write("Enter approver name: ");
+                string approverName = Console.ReadLine();
+                User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
+
+                if (approver != null && approver != loggedInUser && approver != document.Owner && !document.Collaborators.Contains(approver))
+                {
+                    document.SubmitForApproval(approver);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+                }
+            }
+            else
+            {
+                document.SubmitForApproval(document.Approver);
+                Console.WriteLine($"Document '{document.Title}' resubmitted to {document.Approver.Name}.");
+            }
         }
     }
 
+
     static void PushBackDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (document.Approver == loggedInUser)
         {
             Console.Write("Enter comments for push back: ");
             string comments = Console.ReadLine();
@@ -351,31 +387,35 @@ class Program
         }
         else
         {
-            Console.WriteLine("Only the approver can push back this document or document is not under review.");
+            Console.WriteLine("Cannot push back - you are not the approver.");
+            return;
         }
     }
 
     static void ApproveDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (document.Approver == loggedInUser)
         {
             document.Approve();
         }
         else
         {
-            Console.WriteLine("Only the approver can approve this document or document is not under review.");
+            Console.WriteLine("Cannot approve - you are not the approver.");
         }
     }
 
     static void RejectDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (document.Approver == loggedInUser)
         {
-            document.Reject();
+            Console.WriteLine("Enter rejection reason: ");
+            string feedback = Console.ReadLine();
+            Console.WriteLine($"Document '{document.Title}' has been rejected by {document.Approver.Name}: {feedback}");
+            document.Reject(feedback);
         }
         else
         {
-            Console.WriteLine("Only the approver can reject this document or document is not under review.");
+            Console.WriteLine("Cannot reject - you are not the approver.");
         }
     }
 
