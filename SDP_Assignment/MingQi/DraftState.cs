@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace SDP_Assignment.MingQi
-{  
+{
     public class DraftState : IDocumentState
     {
         public void SubmitForApproval(Document document, User approver, List<INotifiable> observers)
@@ -15,7 +15,8 @@ namespace SDP_Assignment.MingQi
             {
                 document.Approver = approver;
                 document.SetState(new UnderReviewState());
-                document.NotifyObservers($"Document '{document.Title}' Submitted for review to {approver.Name}.");
+                approver.Notify($"You have been set as the approver for document '{document.Title}'.");
+                document.NotifyObservers($"Document '{document.Title}' submitted for review to {approver.Name}.");
             }
             else
             {
@@ -33,7 +34,7 @@ namespace SDP_Assignment.MingQi
             Console.WriteLine("Cannot push back a document in Draft state.");
         }
 
-        public void Reject(Document document, string feedbacks, List<INotifiable> observers)
+        public void Reject(Document document, string feedback, List<INotifiable> observers)
         {
             Console.WriteLine("Cannot reject a document in Draft state.");
         }
@@ -55,9 +56,8 @@ namespace SDP_Assignment.MingQi
             if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
             {
                 document.Collaborators.Add(collaborator);
-                Console.WriteLine($"Collaborator '{collaborator.Name} added to document {document.Title}'");
                 document.AttachObserver(collaborator);
-                document.NotifyObservers($"Added as collaborator to '{document.Title}'.");
+                document.NotifyObservers($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
             }
             else
             {
@@ -65,5 +65,4 @@ namespace SDP_Assignment.MingQi
             }
         }
     }
-    
 }
