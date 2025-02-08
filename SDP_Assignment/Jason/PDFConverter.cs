@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SDP_Assignment.Jason
 {
-    public class PDFConversionStrategy : IConversionStrategy
+    public class ConvertToPDF : ConvertStrategy
     {
         public string Convert(Document document)
         {

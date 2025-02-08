@@ -27,6 +27,7 @@ class Program
             Console.WriteLine("3. List Users");
             Console.WriteLine("4. List Documents");
             Console.WriteLine("5. Exit");
+            Console.WriteLine("======================================");
             Console.Write("Select an option: ");
 
             string choice = Console.ReadLine();
@@ -118,7 +119,7 @@ class Program
         {
             foreach (var doc in documents)
             {
-                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
+                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
             }
         }
@@ -138,7 +139,7 @@ class Program
         {
             foreach (var doc in ownedDocs)
             {
-                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
+                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Format: {format})");
             }
         }
@@ -385,22 +386,22 @@ class Program
         Console.WriteLine("2. Word");
         string choice = Console.ReadLine();
 
-        IConversionStrategy strategy = choice switch
+        ConvertStrategy strategy = choice switch
         {
-            "1" => new PDFConversionStrategy(),
-            "2" => new WordConversionStrategy(),
+            "1" => new ConvertToPDF(),
+            "2" => new ConvertToWord(),
             _ => throw new ArgumentException("Invalid choice")
         };
 
-        document.ConversionStrategy = strategy;
+        document.ConvertStrategy = strategy;
         Console.WriteLine("Conversion strategy updated successfully.");
     }
 
     static void ConvertFile(Document document)
     {
-        if (document.ConversionStrategy != null)
+        if (document.ConvertStrategy != null)
         {
-            string result = document.ConversionStrategy.Convert(document);
+            string result = document.ConvertStrategy.Convert(document);
             Console.WriteLine(result);
         }
         else
