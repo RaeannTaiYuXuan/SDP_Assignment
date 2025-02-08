@@ -207,21 +207,21 @@ class Program
         Console.WriteLine("2. Grant Proposal");
         Console.Write("Select an option: ");
 
-        string type = Console.ReadLine() switch
+        IDocumentFactory factory = Console.ReadLine() switch
         {
-            "1" => "technical",
-            "2" => "grant",
+            "1" => new TechnicalReportFactory(),
+            "2" => new GrantProposalFactory(),
             _ => throw new ArgumentException("Invalid choice")
         };
 
         Console.Write("Enter content: ");
         string content = Console.ReadLine();
 
-        var factory = DocumentCreator.GetFactory(type);
         Document doc = factory.CreateDocument(title, content, loggedInUser);
         documents.Add(doc);
-        Console.WriteLine($"{type.ToUpper()} document '{title}' created successfully.");
+        Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
     }
+
 
     static void ManageDocument()
     {
