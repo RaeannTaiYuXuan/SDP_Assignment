@@ -406,6 +406,12 @@ class Program
 
     static void RejectDocument(Document document)
     {
+        if (!document.IsUnderReview)
+        {
+            Console.WriteLine("Cannot reject - document is not under review.");
+            return;
+        }
+
         if (document.Approver == loggedInUser)
         {
             Console.WriteLine("Enter rejection reason: ");
