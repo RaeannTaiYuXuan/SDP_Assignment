@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 // Strategy Pattern
 namespace SDP_Assignment.Jason
 {
-    public interface IConversionStrategy
+    public interface ConvertStrategy
     {
         string Convert(Document document);
     }

@@ -92,7 +92,7 @@ namespace SDP_Assignment
             private set { isUnderReview = value; }
         }
 
-        public IConversionStrategy ConversionStrategy { get; set; }
+        public ConvertStrategy ConvertStrategy { get; set; }
 
         public Document(string title, string header, string footer, User owner)
         {
