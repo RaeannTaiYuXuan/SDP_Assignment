@@ -10,6 +10,8 @@ using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using SDP_Assignment.RAEANN.COMPOSITE;
+using System.ComponentModel.DataAnnotations;
 
 class Program
 {
@@ -76,10 +78,18 @@ class Program
         loggedInUser = users.FirstOrDefault(u => u.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
         if (loggedInUser != null)
+        {
             Console.WriteLine($"Welcome, {loggedInUser.Name}!");
+
+            // ✅ Show stored notifications upon login
+            loggedInUser.ShowNotifications();
+        }
         else
+        {
             Console.WriteLine("User not found. Please create a user first.");
+        }
     }
+
 
     static void ListUsers()
     {
@@ -194,35 +204,52 @@ class Program
     {
         var pushedBackDocs = documents.Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser)) && !string.IsNullOrEmpty(d.Feedback));
 
-        foreach (var doc in pushedBackDocs)
-        {
-            Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
-        }
+        //foreach (var doc in pushedBackDocs)
+        //{
+        //    Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
+        //}
     }
 
     static void CreateDocument()
     {
         Console.Write("Enter document title: ");
         string title = Console.ReadLine();
+
         Console.WriteLine("\nSelect document type:");
         Console.WriteLine("1. Technical Report");
         Console.WriteLine("2. Grant Proposal");
         Console.Write("Select an option: ");
 
-        IDocumentFactory factory = Console.ReadLine() switch
+        IDocumentFactory factory;
+        IDocumentComponent header;
+        IDocumentComponent footer = new FooterComponent("Company Confidential - All Rights Reserved"); // ✅ Footer set
+
+        switch (Console.ReadLine())
         {
-            "1" => new TechnicalReportFactory(),
-            "2" => new GrantProposalFactory(),
-            _ => throw new ArgumentException("Invalid choice")
-        };
+            case "1":
+                factory = new TechnicalReportFactory();
+                header = new HeaderComponent("===== Technical Report ====="); // ✅ Set header
+                break;
+            case "2":
+                factory = new GrantProposalFactory();
+                header = new HeaderComponent("===== Grant Proposal ====="); // ✅ Set header
+                break;
+            default:
+                throw new ArgumentException("Invalid choice");
+        }
 
         Console.Write("Enter content: ");
         string content = Console.ReadLine();
 
-        Document doc = factory.CreateDocument(title, content, loggedInUser);
+        Document doc = factory.CreateDocument(title, content, loggedInUser, header, footer);
         documents.Add(doc);
+
         Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
+        doc.Display(); // ✅ Ensure display is called
     }
+
+
+
 
 
     static void ManageDocument()
@@ -332,12 +359,13 @@ class Program
     {
         if (!document.Collaborators.Contains(loggedInUser) && document.Owner != loggedInUser)
         {
-            Console.WriteLine("Cannot submit for review - you are not a collaborator or the owner.");
+            Console.WriteLine("Cannot submit - you are not a collaborator or owner.");
             return;
-        }
 
+        }
         if (document.IsRejected)
         {
+            // document rejected -> can select new approver
             Console.Write("Enter new approver name: ");
             string approverName = Console.ReadLine();
             User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
@@ -353,6 +381,7 @@ class Program
         }
         else
         {
+            // document pushed back -> resubmit to same approver
             if (document.Approver == null)
             {
                 Console.Write("Enter approver name: ");
@@ -379,6 +408,12 @@ class Program
 
     static void PushBackDocument(Document document)
     {
+        if (!document.IsUnderReview)
+        {
+            Console.WriteLine("Cannot push back - document is not under review.");
+            return;
+        }
+
         if (document.Approver == loggedInUser)
         {
             Console.Write("Enter comments for push back: ");

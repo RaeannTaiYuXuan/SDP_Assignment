@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SDP_Assignment.RAEANN.COMPOSITE;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,10 +12,12 @@ namespace SDP_Assignment.SHIYING
 {
     public class GrantProposalFactory : IDocumentFactory
     {
-        public Document CreateDocument(string title, string content, User owner)
+        public Document CreateDocument(string title, string content, User owner, IDocumentComponent header, IDocumentComponent footer)
         {
-            return new GrantProposal(title, content, owner);
+            return new GrantProposal(title, content, owner, header, footer);
         }
     }
+
+    // Raeann : i added composite pattern for header and footer , change the no of argument inside too 
 }
 

@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SDP_Assignment.RAEANN
+namespace SDP_Assignment.RAEANN.COMPOSITE
 {
-    public interface INotifiable
+    public interface IDocumentComponent
     {
-        void Notify(string message);
+        string Render();
     }
-
 }
