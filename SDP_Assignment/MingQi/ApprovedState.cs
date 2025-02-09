@@ -41,7 +41,7 @@ namespace SDP_Assignment.MingQi
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
-            Console.WriteLine("Cannot add collaborators in Approved state.");
+            Console.WriteLine("Cannot add collaborators in once approved.");
         }
     }
 }
