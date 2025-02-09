@@ -18,45 +18,28 @@ namespace SDP_Assignment.MingQi
         {
             document.SetState(new ApprovedState());
 
-            //Notify owner and collaborators
-            document.Owner.StoreNotification(NotificationType.DocumentApproved,
-                $"Your document '{document.Title}' has been approved.");
-
-            foreach (var collaborator in document.Collaborators)
-            {
-                collaborator.StoreNotification(NotificationType.DocumentApproved,
-                    $"Document '{document.Title}' has been approved.");
-            }
+            document.NotifyObservers(NotificationType.DocumentApproved, $"Document '{document.Title}' has been approved by {document.Approver.Name}.", excludeUser: document.Approver);
+   
         }
 
 
         public void PushBack(Document document, string comments, List<NotifyObserver> observers)
         {
-            //Notify owner and collaborators
-            document.Owner.StoreNotification(NotificationType.DocumentPushedBack,
-                $"Your document '{document.Title}' has been pushed back. Comments: {comments}");
+            document.SetState(new DraftState());
+            document.Feedback = comments;
 
-            foreach (var collaborator in document.Collaborators)
-            {
-                collaborator.StoreNotification(NotificationType.DocumentPushedBack,
-                    $"Document '{document.Title}' has been pushed back. Comments: {comments}");
-            }
+            string message = $"Document '{document.Title}' has been pushed back with comments: {comments}";
+
+            document.NotifyObservers(NotificationType.DocumentPushedBack, message, excludeUser: document.Approver);
+
         }
-
 
         public void Reject(Document document, string feedback, List<NotifyObserver> observers)
         {
             document.SetState(new DraftState());
+            document.Approver = null;
 
-            //Notify owner and collaborators
-            document.Owner.StoreNotification(NotificationType.DocumentRejected,
-                $"Your document '{document.Title}' has been rejected. Reason: {feedback}");
-
-            foreach (var collaborator in document.Collaborators)
-            {
-                collaborator.StoreNotification(NotificationType.DocumentRejected,
-                    $"Document '{document.Title}' has been rejected. Reason: {feedback}");
-            }
+            document.NotifyObservers(NotificationType.DocumentRejected, $"Document '{document.Title}' has been rejected with reason: {feedback}", excludeUser: document.Approver);
         }
 
 
@@ -72,16 +55,8 @@ namespace SDP_Assignment.MingQi
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
-            if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
-            {
-                document.Collaborators.Add(collaborator);
-                document.AttachObserver(collaborator);
-                document.NotifyObservers(NotificationType.DocumentSubmitted, $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
-            }
-            else
-            {
-                Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
-            }
+            document.AddCollaborator(document.Owner, collaborator);
         }
+
     }
 }

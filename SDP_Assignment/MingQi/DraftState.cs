@@ -16,25 +16,12 @@ namespace SDP_Assignment.MingQi
                 document.Approver = approver;
                 document.SetState(new UnderReviewState());
 
-                //Ensure approver is only attached once
-                if (!observers.Contains(approver))
-                {
-                    document.AttachObserver(approver);
-                }
+                //approver.StoreNotification(NotificationType.DocumentSubmitted, $"You have been set as the approver for document '{document.Title}'.");
+                approver.Notify(NotificationType.DocumentSubmitted, $"You have been set as the approver for document '{document.Title}'.");
 
-                //Store notification for the approver instead of printing immediately
-                approver.StoreNotification(NotificationType.DocumentSubmitted,
-                    $"You have been set as the approver for document '{document.Title}'.");
+                string message = $"Document '{document.Title}' submitted for review to {approver.Name}.";
+                document.NotifyObservers(NotificationType.DocumentSubmitted, message, excludeUser: approver);
 
-                //Store notifications for collaborators
-                foreach (var observer in observers)
-                {
-                    if (observer != approver) //Ensure the approver doesn't get the same notification again
-                    {
-                        observer.StoreNotification(NotificationType.DocumentSubmitted,
-                            $"Document '{document.Title}' submitted for review to {approver.Name}.");
-                    }
-                }
             }
             else
             {
@@ -74,18 +61,8 @@ namespace SDP_Assignment.MingQi
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
-            if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
-            {
-                document.Collaborators.Add(collaborator);
-                document.AttachObserver(collaborator);
-
-                document.NotifyObservers(NotificationType.CollaboratorAdded,
-                     $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
-            }
-            else
-            {
-                Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
-            }
+            document.AddCollaborator(document.Owner, collaborator);
         }
+
     }
 }
