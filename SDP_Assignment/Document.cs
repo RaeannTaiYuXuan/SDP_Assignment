@@ -20,6 +20,12 @@ public abstract class Document : ISubject
     private User approver;
     private string feedback;
 
+    // Track applied decorators======================================
+    private List<string> appliedDecorators = new List<string>();
+    public List<string> AppliedDecorators => appliedDecorators;
+    //================================================================
+
+
     public string Title { get; set; }
 
     public string Content { get; set; }
@@ -137,9 +143,34 @@ public abstract class Document : ISubject
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render()); 
+        Console.WriteLine(Footer.Render());
+
+        // Show applied decorators
+        if (appliedDecorators.Count > 0)
+        {
+            Console.WriteLine($"Enhancements: {string.Join(", ", appliedDecorators)}");
+        }
+        else
+        {
+            Console.WriteLine("No enhancements applied.");
+        }
+
         Console.WriteLine("======================");
     }
+
+    public bool HasDecorator(string decorator)
+    {
+        return appliedDecorators.Contains(decorator);
+    }
+
+    public void AddDecorator(string decorator)
+    {
+        if (!appliedDecorators.Contains(decorator))
+        {
+            appliedDecorators.Add(decorator);
+        }
+    }
+
 
 
     public void AddCollaborator(User loggedInUser, User collaborator)
