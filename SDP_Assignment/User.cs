@@ -21,6 +21,7 @@ namespace SDP_Assignment
         {
             //Store notifications instead of printing them immediately
             StoreNotification(type, message);
+            Console.WriteLine($"[Notification] {type} - {message}");  // ✅ Ensure it prints
         }
 
         public void StoreNotification(NotificationType type, string message)
