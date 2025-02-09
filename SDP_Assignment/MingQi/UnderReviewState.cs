@@ -22,7 +22,6 @@ namespace SDP_Assignment.MingQi
    
         }
 
-
         public void PushBack(Document document, string comments, List<NotifyObserver> observers)
         {
             document.SetState(new DraftState());
@@ -36,7 +35,7 @@ namespace SDP_Assignment.MingQi
 
         public void Reject(Document document, string feedback, List<NotifyObserver> observers)
         {
-            document.SetState(new DraftState());
+            document.SetState(new RejectedState());
             document.Approver = null;
 
             document.NotifyObservers(NotificationType.DocumentRejected, $"Document '{document.Title}' has been rejected with reason: {feedback}", excludeUser: document.Approver);
@@ -55,7 +54,22 @@ namespace SDP_Assignment.MingQi
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
-            document.AddCollaborator(document.Owner, collaborator);
+            if (document.Owner == collaborator || document.Collaborators.Contains(collaborator))
+            {
+                Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
+                return;
+            }
+
+            document.Collaborators.Add(collaborator);
+            document.AttachObserver(collaborator);
+
+            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+                $"You have been added as a collaborator to document '{document.Title}'.");
+
+            Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
+
+            document.NotifyObservers(NotificationType.CollaboratorAdded,
+                            $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.", excludeUser: document.Approver);
         }
 
     }

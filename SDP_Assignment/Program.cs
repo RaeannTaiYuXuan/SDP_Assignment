@@ -321,15 +321,23 @@ class Program
             return;
         }
 
-        if (document.Owner == loggedInUser || document.Collaborators.Contains(loggedInUser))
+        else if (document.IsApproved)
         {
-            Console.Write("Enter new content: ");
-            string newContent = Console.ReadLine();
-            document.EditContent(newContent);
+            Console.WriteLine("Cannot edit - document has already been approved.");
+            return; 
         }
         else
         {
-            Console.WriteLine("Cannot edit - you are not a collaborator.");
+            if (document.Owner == loggedInUser || document.Collaborators.Contains(loggedInUser))
+            {
+                Console.Write("Enter new content: ");
+                string newContent = Console.ReadLine();
+                document.EditContent(newContent);
+            }
+            else
+            {
+                Console.WriteLine("Cannot edit - you are not a collaborator.");
+            }
         }
     }
 
@@ -361,11 +369,10 @@ class Program
         {
             Console.WriteLine("Cannot submit - you are not a collaborator or owner.");
             return;
-
         }
-        if (document.IsRejected)
+
+        if (document.IsRejected || document.Approver == null)
         {
-            // document rejected -> can select new approver
             Console.Write("Enter new approver name: ");
             string approverName = Console.ReadLine();
             User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
@@ -381,38 +388,11 @@ class Program
         }
         else
         {
-            // document pushed back -> resubmit to same approver
-            if (document.Approver == null)
-            {
-                Console.Write("Enter approver name: ");
-                string approverName = Console.ReadLine();
-                User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
-
-                if (approver != null && approver != loggedInUser && approver != document.Owner && !document.Collaborators.Contains(approver))
-                {
-                    document.SubmitForApproval(approver);
-                }
-                else
-                {
-                    Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
-                }
-            }
-            else
-            {
-                document.SubmitForApproval(document.Approver);
-                Console.WriteLine($"Document '{document.Title}' resubmitted to {document.Approver.Name}.");
-            }
+            document.SubmitForApproval(document.Approver);
         }
     }
-
-
     static void PushBackDocument(Document document)
-    {
-        if (!document.IsUnderReview)
-        {
-            Console.WriteLine("Cannot push back - document is not under review.");
-            return;
-        }
+    { 
 
         if (document.Approver == loggedInUser)
         {
@@ -441,11 +421,6 @@ class Program
 
     static void RejectDocument(Document document)
     {
-        if (!document.IsUnderReview)
-        {
-            Console.WriteLine("Cannot reject - document is not under review.");
-            return;
-        }
 
         if (document.Approver == loggedInUser)
         {
