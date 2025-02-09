@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 namespace SDP_Assignment.RAEANN
 {
-    public interface INotifiable
+    public interface NotifyObserver
     {
-        void Notify(string message);
+        void Notify(NotificationType type, string message);
+        void StoreNotification(NotificationType type, string message);
     }
+
 
 }

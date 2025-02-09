@@ -76,10 +76,18 @@ class Program
         loggedInUser = users.FirstOrDefault(u => u.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
         if (loggedInUser != null)
+        {
             Console.WriteLine($"Welcome, {loggedInUser.Name}!");
+
+            // ✅ Show stored notifications upon login
+            loggedInUser.ShowNotifications();
+        }
         else
+        {
             Console.WriteLine("User not found. Please create a user first.");
+        }
     }
+
 
     static void ListUsers()
     {
