@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SDP_Assignment.RAEANN.COMPOSITE;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,10 +9,12 @@ namespace SDP_Assignment.SHIYING
 {
     public class TechnicalReport : Document
     {
-        public TechnicalReport(string title, string content, User owner)
-            : base(title, "TECHNICAL REPORT HEADER", "Technical Report Footer", owner)
+        public TechnicalReport(string title, string content, User owner, IDocumentComponent header, IDocumentComponent footer)
+            : base(title, header, footer, owner) // ✅ Pass header & footer
         {
             Content = content;
         }
+
+        // Raeann : i added composite pattern for header and footer , change the no of argument inside too , bought the content down 
     }
 }
