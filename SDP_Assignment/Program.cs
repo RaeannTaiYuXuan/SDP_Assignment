@@ -204,10 +204,10 @@ class Program
     {
         var pushedBackDocs = documents.Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser)) && !string.IsNullOrEmpty(d.Feedback));
 
-        foreach (var doc in pushedBackDocs)
-        {
-            Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
-        }
+        //foreach (var doc in pushedBackDocs)
+        //{
+        //    Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
+        //}
     }
 
     static void CreateDocument()
@@ -359,12 +359,13 @@ class Program
     {
         if (!document.Collaborators.Contains(loggedInUser) && document.Owner != loggedInUser)
         {
-            Console.WriteLine("Cannot submit for review - you are not a collaborator or the owner.");
+            Console.WriteLine("Cannot submit - you are not a collaborator or owner.");
             return;
-        }
 
+        }
         if (document.IsRejected)
         {
+            // document rejected -> can select new approver
             Console.Write("Enter new approver name: ");
             string approverName = Console.ReadLine();
             User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
@@ -380,6 +381,7 @@ class Program
         }
         else
         {
+            // document pushed back -> resubmit to same approver
             if (document.Approver == null)
             {
                 Console.Write("Enter approver name: ");
@@ -406,6 +408,12 @@ class Program
 
     static void PushBackDocument(Document document)
     {
+        if (!document.IsUnderReview)
+        {
+            Console.WriteLine("Cannot push back - document is not under review.");
+            return;
+        }
+
         if (document.Approver == loggedInUser)
         {
             Console.Write("Enter comments for push back: ");

@@ -34,19 +34,28 @@ public abstract class Document : ISubject
     public Document(string title, IDocumentComponent header, IDocumentComponent footer, User owner)
     {
         Title = title;
-        Header = header ?? new HeaderComponent("DEFAULT HEADER"); // ✅ Prevent null
-        Footer = footer ?? new FooterComponent("DEFAULT FOOTER"); // ✅ Prevent null
+        Header = header ?? new HeaderComponent("DEFAULT HEADER");
+        Footer = footer ?? new FooterComponent("DEFAULT FOOTER");
         Owner = owner;
         Collaborators = new List<User>();
         Content = string.Empty;
         currentState = new DraftState(); // Initial state
 
-        AttachObserver(owner);  // ✅ Automatically add the owner as an observer
+        AttachObserver(owner);
     }
 
     public void SetState(IDocumentState newState)
     {
         currentState = newState;
+
+        if (newState is UnderReviewState)
+        {
+            Console.WriteLine($"Document '{Title}' is now under review.");
+        }
+        else if (newState is DraftState)
+        {
+            Console.WriteLine($"Document '{Title}' is back in draft state.");
+        }
     }
 
 
@@ -67,7 +76,7 @@ public abstract class Document : ISubject
     {
         foreach (var observer in observers)
         {
-            if (observer != excludeUser)  // ✅ Avoid notifying excluded user
+            if (observer != excludeUser)  
             {
                 observer.Notify(type, message);
             }
@@ -76,34 +85,33 @@ public abstract class Document : ISubject
 
     public void SubmitForApproval(User approver)
     {
-        if (!observers.Contains(approver)) //  Ensure approver is added only once
+        if (!observers.Contains(approver))
         {
             AttachObserver(approver);
         }
 
         currentState.SubmitForApproval(this, approver, observers);
-
-        // ✅ Notify only ONCE, not per observer
-        Console.WriteLine($"[Notification] DocumentSubmitted - {approver.Name} is set to be the approver.");
     }
 
 
     public void Approve()
     {
         currentState.Approve(this, observers);
-        NotifyObservers(NotificationType.DocumentApproved, $"Document '{Title}' has been approved by {Approver.Name}.");
+        //NotifyObservers(NotificationType.DocumentApproved, $"Document '{Title}' has been approved by {Approver.Name}.");
     }
 
     public void PushBack(string comments)
     {
         currentState.PushBack(this, comments, observers);
-        NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{Title}' has been pushed back with comments: {comments}");
+        //NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{Title}' has been pushed back with comments: {comments}");
+
     }
 
     public void Reject(string feedback)
     {
         currentState.Reject(this, feedback, observers);
-        NotifyObservers(NotificationType.DocumentRejected, $"Document '{Title}' has been rejected with reason: {feedback}");
+        //NotifyObservers(NotificationType.DocumentRejected, $"Document '{Title}' has been rejected with reason: {feedback}");
+
     }
 
     public void ResumeEditing()
@@ -115,8 +123,7 @@ public abstract class Document : ISubject
     {
         Content = newContent;
         NotifyObservers(NotificationType.DocumentEdited, $"Document '{Title}' has been edited.");
-
-        Display(); // ✅ Now it will display the full document after an edit
+        Display();
     }
 
     public bool IsUnderReview
@@ -137,11 +144,11 @@ public abstract class Document : ISubject
     public virtual void Display()
     {
 
-        Console.WriteLine(Header.Render()); // ✅ Displays header
+        Console.WriteLine(Header.Render()); 
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render()); // ✅ Displays footer
+        Console.WriteLine(Footer.Render()); 
         Console.WriteLine("======================");
     }
 
@@ -157,23 +164,20 @@ public abstract class Document : ISubject
         if (collaborator != null && collaborator != Owner && !Collaborators.Contains(collaborator))
         {
             Collaborators.Add(collaborator);
-            AttachObserver(collaborator); // ✅ Ensure the collaborator is added as an observer
+            AttachObserver(collaborator);
 
-            // ✅ Store a notification for the new collaborator
             collaborator.StoreNotification(NotificationType.CollaboratorAdded,
                 $"You have been added as a collaborator to document '{Title}'.");
 
             Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{Title}'.");
 
-            // ✅ Notify existing observers (excluding the new collaborator)
             NotifyObservers(NotificationType.CollaboratorAdded,
-                $"Collaborator '{collaborator.Name}' added to document '{Title}'.", excludeUser: collaborator);
-
-            
+                $"Collaborator '{collaborator.Name}' added to document '{Title}'.", excludeUser:approver);
         }
         else
         {
             Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
         }
     }
+
 }
