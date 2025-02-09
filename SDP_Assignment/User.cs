@@ -21,12 +21,12 @@ namespace SDP_Assignment
         {
             //Store notifications instead of printing them immediately
             StoreNotification(type, message);
-            Console.WriteLine($"[Notification] {type} - {message}");  // ✅ Ensure it prints
+            Console.WriteLine($"[Notification - {Name}] {type} - {message}"); 
         }
 
         public void StoreNotification(NotificationType type, string message)
         {
-            string formattedMessage = $"[Notification] {type} - {message}";
+            string formattedMessage = $"[Notification - {Name}] {type} - {message}";
             notificationHistory.Add(formattedMessage);
         }
 
@@ -39,11 +39,12 @@ namespace SDP_Assignment
             }
             else
             {
+                Console.WriteLine("You have unread notifications:\n");
                 foreach (string notification in notificationHistory)
                 {
                     Console.WriteLine(notification);
                 }
-                notificationHistory.Clear(); // ✅ Clear notifications after viewing
+                notificationHistory.Clear(); 
             }
         }
     }
