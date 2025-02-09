@@ -2,6 +2,8 @@
 using SDP_Assignment.MingQi;
 using SDP_Assignment.RAEANN;
 using SDP_Assignment;
+using SDP_Assignment.RAEANN.COMPOSITE;
+using System.Reflection.PortableExecutable;
 
 public abstract class Document : ISubject
 {
@@ -9,29 +11,30 @@ public abstract class Document : ISubject
     private List<NotifyObserver> observers = new List<NotifyObserver>();
 
     private string title;
-    private string header;
     private string content;
-    private string footer;
+    private IDocumentComponent header;
+    private IDocumentComponent footer;
     private User owner;
     private List<User> collaborators;
     private User approver;
     private string feedback;
 
     public string Title { get; set; }
-    public string Header { get; set; }
+    
     public string Content { get; set; }
-    public string Footer { get; set; }
+    public IDocumentComponent Header { get; set; }
+    public IDocumentComponent Footer { get; set; }
     public User Owner { get; set; }
     public List<User> Collaborators { get; set; }
     public User Approver { get; internal set; }
     public string Feedback { get; internal set; }
     public ConvertStrategy ConvertStrategy { get; set; }
 
-    public Document(string title, string header, string footer, User owner)
+    public Document(string title, IDocumentComponent header, IDocumentComponent footer, User owner)
     {
         Title = title;
-        Header = header;
-        Footer = footer;
+        Header = header ?? new HeaderComponent("DEFAULT HEADER"); // ✅ Prevent null
+        Footer = footer ?? new FooterComponent("DEFAULT FOOTER"); // ✅ Prevent null
         Owner = owner;
         Collaborators = new List<User>();
         Content = string.Empty;
@@ -102,6 +105,8 @@ public abstract class Document : ISubject
     {
         Content = newContent;
         NotifyObservers(NotificationType.DocumentEdited, $"Document '{Title}' has been edited.");
+
+        Display(); // ✅ Now it will display the full document after an edit
     }
 
     public bool IsUnderReview
@@ -121,14 +126,15 @@ public abstract class Document : ISubject
 
     public virtual void Display()
     {
-        Console.WriteLine("====================================");
+       
+        Console.WriteLine(Header.Render()); // ✅ Displays header
         Console.WriteLine($"Title: {Title}");
-        Console.WriteLine($"Header: {Header}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine($"Footer: {Footer}");
-        Console.WriteLine("====================================");
+        Console.WriteLine(Footer.Render()); // ✅ Displays footer
+        Console.WriteLine("======================");
     }
+
 
     public void AddCollaborator(User loggedInUser, User collaborator)
     {
