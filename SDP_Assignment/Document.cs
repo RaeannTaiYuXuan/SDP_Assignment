@@ -139,11 +139,13 @@ public abstract class Document : ISubject
     public virtual void Display()
     {
 
-        Console.WriteLine(Header.Render()); 
+       
+        Console.WriteLine(Header.Render()); // ✅ Displays formatted header
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render());
+        Console.WriteLine(Footer.Render()); // ✅ Displays formatted footer
+        
 
         // Show applied decorators
         if (appliedDecorators.Count > 0)
@@ -155,7 +157,7 @@ public abstract class Document : ISubject
             Console.WriteLine("No enhancements applied.");
         }
 
-        Console.WriteLine("======================");
+        
     }
 
     public bool HasDecorator(string decorator)

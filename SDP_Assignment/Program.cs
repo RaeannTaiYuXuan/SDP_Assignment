@@ -222,18 +222,20 @@ class Program
         Console.Write("Select an option: ");
 
         IDocumentFactory factory;
-        IDocumentComponent header;
-        IDocumentComponent footer = new FooterComponent("Company Confidential - All Rights Reserved"); // ✅ Footer set
+        CompositeHeaderComponent header = new CompositeHeaderComponent();
+        IDocumentComponent footer = new FooterComponent("==== Confidential Footer ====");
 
         switch (Console.ReadLine())
         {
             case "1":
                 factory = new TechnicalReportFactory();
-                header = new HeaderComponent("===== Technical Report ====="); // ✅ Set header
+                header.Add(new HeaderComponent("===== Technical Report ====="));
+                header.Add(new HeaderComponent($"Author: {loggedInUser.Name}"));
                 break;
             case "2":
                 factory = new GrantProposalFactory();
-                header = new HeaderComponent("===== Grant Proposal ====="); // ✅ Set header
+                header.Add(new HeaderComponent("===== Grant Proposal ====="));
+                header.Add(new HeaderComponent($"Submitted by: {loggedInUser.Name}"));
                 break;
             default:
                 throw new ArgumentException("Invalid choice");
@@ -246,8 +248,9 @@ class Program
         documents.Add(doc);
 
         Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
-        doc.Display(); // ✅ Ensure display is called
+        doc.Display(); // ✅ Ensure document is displayed correctly
     }
+
 
 
     static void ManageDocument()

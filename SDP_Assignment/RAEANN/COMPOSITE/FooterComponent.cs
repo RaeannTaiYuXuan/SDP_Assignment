@@ -10,7 +10,7 @@ namespace SDP_Assignment.RAEANN.COMPOSITE
     {
         private string content;
 
-        public FooterComponent(string content)  // ✅ Ensure a constructor exists
+        public FooterComponent(string content)  //  Ensure a constructor exists
         {
             this.content = content;
         }
