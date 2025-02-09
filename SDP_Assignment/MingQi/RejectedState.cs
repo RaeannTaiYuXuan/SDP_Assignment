@@ -13,9 +13,16 @@ namespace SDP_Assignment.MingQi
         {
             if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
             {
+                document.Approver = null;
                 document.Approver = approver;
                 document.SetState(new UnderReviewState());
-                document.NotifyObservers(NotificationType.DocumentSubmitted, $"Document '{document.Title}' submitted for approval to {approver.Name}.");
+
+                approver.Notify(NotificationType.DocumentSubmitted, $"You have been set as the approver for document '{document.Title}'.");
+
+                string message = $"Document '{document.Title}' submitted for review to {approver.Name}.";
+                document.NotifyObservers(NotificationType.DocumentSubmitted, message, excludeUser: approver);
+
+                Console.WriteLine($"Document '{document.Title}' has been submitted for review to {approver.Name}.");
             }
             else
             {
@@ -33,7 +40,7 @@ namespace SDP_Assignment.MingQi
             Console.WriteLine("Cannot push back a document in Rejected state.");
         }
 
-        public void Reject(Document document, string feedbacks, List<NotifyObserver> observers)
+        public void Reject(Document document, string feedback, List<NotifyObserver> observers)
         {
             Console.WriteLine("Document is already in Rejected state.");
         }
@@ -41,19 +48,40 @@ namespace SDP_Assignment.MingQi
         public void ResumeEditing(Document document, List<NotifyObserver> observers)
         {
             document.SetState(new DraftState());
-            document.NotifyObservers(NotificationType.DocumentSubmitted, $"Document '{document.Title}' is back in Draft state for editing.");
+
+            document.NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{document.Title}' is back in Draft state for editing.");
+
+            Console.WriteLine($"Document '{document.Title}' is now in Draft state and can be edited.");
         }
 
         public void EditContent(Document document, string newContent, List<NotifyObserver> observers)
         {
             document.Content = newContent;
             document.ClearFeedback();
-            document.NotifyObservers(NotificationType.DocumentSubmitted, $"Document '{document.Title}' has been updated.");
+
+            document.NotifyObservers(NotificationType.DocumentEdited, $"Document '{document.Title}' has been updated.");
+
+            Console.WriteLine($"Document '{document.Title}' has been updated.");
         }
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
-            Console.WriteLine("Cannot add collaborators in Rejected state.");
+            if (document.Owner == collaborator || document.Collaborators.Contains(collaborator))
+            {
+                Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
+                return;
+            }
+
+            document.Collaborators.Add(collaborator);
+            document.AttachObserver(collaborator);
+
+            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+                $"You have been added as a collaborator to document '{document.Title}'.");
+
+            Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
+
+            document.NotifyObservers(NotificationType.CollaboratorAdded,
+                            $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.", excludeUser: document.Approver);
         }
     }
 }
