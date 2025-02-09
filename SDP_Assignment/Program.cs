@@ -5,6 +5,7 @@
 using SDP_Assignment;
 using SDP_Assignment.Jason;
 using SDP_Assignment.SHIYING;
+using SDP_Assignment.SHIYING.DECORATOR;
 using SDP_Assignment.MingQi;
 using SDP_Assignment.RAEANN;
 using System;
@@ -249,9 +250,6 @@ class Program
     }
 
 
-
-
-
     static void ManageDocument()
     {
         Document doc = SelectUserDocument();
@@ -270,7 +268,8 @@ class Program
             Console.WriteLine("6. Add Collaborator");
             Console.WriteLine("7. Set File Conversion Type");
             Console.WriteLine("8. Convert File");
-            Console.WriteLine("9. Stop Managing Document");
+            Console.WriteLine("9. Apply Security & Branding");
+            Console.WriteLine("10. Stop Managing Document");
             Console.Write("Select an option: ");
 
             string choice = Console.ReadLine();
@@ -303,6 +302,9 @@ class Program
                     ConvertFile(doc);
                     break;
                 case "9":
+                    doc = ApplyDecorators(doc);
+                    break;
+                case "10":
                     managing = false;
                     break;
                 default:
@@ -487,4 +489,69 @@ class Program
 
         return userDocs.FirstOrDefault(d => d.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
     }
+
+    static Document ApplyDecorators(Document doc)
+    {
+        bool decorating = true;
+        while (decorating)
+        {
+            Console.WriteLine("\n===== Apply Document Features =====");
+            Console.WriteLine("1. Add Watermark");
+            Console.WriteLine("2. Add Digital Signature");
+            Console.WriteLine("3. Encrypt Document");
+            Console.WriteLine("4. Show Document");
+            Console.WriteLine("0. Exit");
+            Console.Write("Select an option: ");
+
+            string choice = Console.ReadLine();
+            Console.WriteLine();
+
+            switch (choice)
+            {
+                case "1":
+                    if (doc.HasDecorator("Watermark"))
+                    {
+                        Console.WriteLine("Watermark is already applied.");
+                    }
+                    else
+                    {
+                        doc = new WatermarkDecorator(doc);
+                    }
+                    break;
+                case "2":
+                    if (doc.HasDecorator("Signature"))
+                    {
+                        Console.WriteLine("Digital signature is already applied.");
+                    }
+                    else
+                    {
+                        doc = new SignatureDecorator(doc);
+                    }
+                    break;
+                case "3":
+                    if (doc.HasDecorator("Encryption"))
+                    {
+                        Console.WriteLine("Document is already encrypted.");
+                    }
+                    else
+                    {
+                        doc = new EncryptionDecorator(doc);
+                    }
+                    break;
+                case "4":
+                    doc.Display();
+                    break;
+                case "0":
+                    decorating = false;
+                    break;
+                default:
+                    Console.WriteLine("Invalid option. Please try again.");
+                    break;
+            }
+        }
+
+        return doc; // Return the decorated document
+    }
+
+
 }
