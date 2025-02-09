@@ -4,6 +4,7 @@ using SDP_Assignment.RAEANN;
 using SDP_Assignment;
 using SDP_Assignment.RAEANN.COMPOSITE;
 using System.Reflection.PortableExecutable;
+using System.Reflection.Metadata;
 
 public abstract class Document : ISubject
 {
@@ -20,7 +21,7 @@ public abstract class Document : ISubject
     private string feedback;
 
     public string Title { get; set; }
-    
+
     public string Content { get; set; }
     public IDocumentComponent Header { get; set; }
     public IDocumentComponent Footer { get; set; }
@@ -75,8 +76,17 @@ public abstract class Document : ISubject
 
     public void SubmitForApproval(User approver)
     {
+        if (!observers.Contains(approver)) //  Ensure approver is added only once
+        {
+            AttachObserver(approver);
+        }
+
         currentState.SubmitForApproval(this, approver, observers);
+
+        // ✅ Notify only ONCE, not per observer
+        Console.WriteLine($"[Notification] DocumentSubmitted - {approver.Name} is set to be the approver.");
     }
+
 
     public void Approve()
     {
@@ -126,7 +136,7 @@ public abstract class Document : ISubject
 
     public virtual void Display()
     {
-       
+
         Console.WriteLine(Header.Render()); // ✅ Displays header
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
@@ -149,13 +159,17 @@ public abstract class Document : ISubject
             Collaborators.Add(collaborator);
             AttachObserver(collaborator); // ✅ Ensure the collaborator is added as an observer
 
+            // ✅ Store a notification for the new collaborator
             collaborator.StoreNotification(NotificationType.CollaboratorAdded,
                 $"You have been added as a collaborator to document '{Title}'.");
 
             Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{Title}'.");
 
+            // ✅ Notify existing observers (excluding the new collaborator)
             NotifyObservers(NotificationType.CollaboratorAdded,
                 $"Collaborator '{collaborator.Name}' added to document '{Title}'.", excludeUser: collaborator);
+
+            
         }
         else
         {
