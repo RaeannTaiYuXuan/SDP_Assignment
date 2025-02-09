@@ -5,6 +5,7 @@
 using SDP_Assignment;
 using SDP_Assignment.Jason;
 using SDP_Assignment.SHIYING;
+using SDP_Assignment.MingQi;
 using SDP_Assignment.RAEANN;
 using System;
 using System.Collections.Generic;
@@ -27,6 +28,7 @@ class Program
             Console.WriteLine("3. List Users");
             Console.WriteLine("4. List Documents");
             Console.WriteLine("5. Exit");
+            Console.WriteLine("======================================");
             Console.Write("Select an option: ");
 
             string choice = Console.ReadLine();
@@ -118,7 +120,7 @@ class Program
         {
             foreach (var doc in documents)
             {
-                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
+                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
             }
         }
@@ -138,7 +140,7 @@ class Program
         {
             foreach (var doc in ownedDocs)
             {
-                string format = doc.ConversionStrategy != null ? doc.ConversionStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
+                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "") : "Not Set";
                 Console.WriteLine($"- {doc.Title} (Format: {format})");
             }
         }
@@ -194,7 +196,7 @@ class Program
 
         foreach (var doc in pushedBackDocs)
         {
-            Console.WriteLine($"\nNotification: Your document '{doc.Title}' has been pushed back with comments: {doc.Feedback}");
+            Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
         }
     }
 
@@ -207,21 +209,21 @@ class Program
         Console.WriteLine("2. Grant Proposal");
         Console.Write("Select an option: ");
 
-        string type = Console.ReadLine() switch
+        IDocumentFactory factory = Console.ReadLine() switch
         {
-            "1" => "technical",
-            "2" => "grant",
+            "1" => new TechnicalReportFactory(),
+            "2" => new GrantProposalFactory(),
             _ => throw new ArgumentException("Invalid choice")
         };
 
         Console.Write("Enter content: ");
         string content = Console.ReadLine();
 
-        var factory = DocumentCreator.GetFactory(type);
         Document doc = factory.CreateDocument(title, content, loggedInUser);
         documents.Add(doc);
-        Console.WriteLine($"{type.ToUpper()} document '{title}' created successfully.");
+        Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
     }
+
 
     static void ManageDocument()
     {
@@ -285,15 +287,23 @@ class Program
 
     static void EditDocument(Document document)
     {
+
         if (document.IsUnderReview)
         {
-            Console.WriteLine("This document is under review. No edits are allowed.");
+            Console.WriteLine("Cannot edit - document is under review.");
             return;
         }
 
-        Console.Write("Enter new content: ");
-        string newContent = Console.ReadLine();
-        document.EditContent(newContent);
+        if (document.Owner == loggedInUser || document.Collaborators.Contains(loggedInUser))
+        {
+            Console.Write("Enter new content: ");
+            string newContent = Console.ReadLine();
+            document.EditContent(newContent);
+        }
+        else
+        {
+            Console.WriteLine("Cannot edit - you are not a collaborator.");
+        }
     }
 
     static void AddCollaborator(Document document)
@@ -310,7 +320,7 @@ class Program
 
         if (collaborator != null && collaborator != document.Owner && !document.Collaborators.Contains(collaborator))
         {
-            document.AddCollaborator(collaborator);
+            document.AddCollaborator(loggedInUser, collaborator);
         }
         else
         {
@@ -320,29 +330,56 @@ class Program
 
     static void SubmitForReview(Document document)
     {
-        if (document.IsUnderReview)
+        if (!document.Collaborators.Contains(loggedInUser) && document.Owner != loggedInUser)
         {
-            Console.WriteLine("Document is already under review.");
+            Console.WriteLine("Cannot submit for review - you are not a collaborator or the owner.");
             return;
         }
 
-        Console.Write("Enter approver name: ");
-        string approverName = Console.ReadLine();
-        User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
-
-        if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
+        if (document.IsRejected)
         {
-            document.SubmitForApproval(approver);
+            Console.Write("Enter new approver name: ");
+            string approverName = Console.ReadLine();
+            User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
+
+            if (approver != null && approver != loggedInUser && approver != document.Owner && !document.Collaborators.Contains(approver))
+            {
+                document.SubmitForApproval(approver);
+            }
+            else
+            {
+                Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+            }
         }
         else
         {
-            Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+            if (document.Approver == null)
+            {
+                Console.Write("Enter approver name: ");
+                string approverName = Console.ReadLine();
+                User approver = users.FirstOrDefault(u => u.Name.Equals(approverName, StringComparison.OrdinalIgnoreCase));
+
+                if (approver != null && approver != loggedInUser && approver != document.Owner && !document.Collaborators.Contains(approver))
+                {
+                    document.SubmitForApproval(approver);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid approver. The approver cannot be the owner or a collaborator.");
+                }
+            }
+            else
+            {
+                document.SubmitForApproval(document.Approver);
+                Console.WriteLine($"Document '{document.Title}' resubmitted to {document.Approver.Name}.");
+            }
         }
     }
 
+
     static void PushBackDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (document.Approver == loggedInUser)
         {
             Console.Write("Enter comments for push back: ");
             string comments = Console.ReadLine();
@@ -350,31 +387,41 @@ class Program
         }
         else
         {
-            Console.WriteLine("Only the approver can push back this document or document is not under review.");
+            Console.WriteLine("Cannot push back - you are not the approver.");
+            return;
         }
     }
 
     static void ApproveDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (document.Approver == loggedInUser)
         {
             document.Approve();
         }
         else
         {
-            Console.WriteLine("Only the approver can approve this document or document is not under review.");
+            Console.WriteLine("Cannot approve - you are not the approver.");
         }
     }
 
     static void RejectDocument(Document document)
     {
-        if (document.IsUnderReview && document.Approver == loggedInUser)
+        if (!document.IsUnderReview)
         {
-            document.Reject();
+            Console.WriteLine("Cannot reject - document is not under review.");
+            return;
+        }
+
+        if (document.Approver == loggedInUser)
+        {
+            Console.WriteLine("Enter rejection reason: ");
+            string feedback = Console.ReadLine();
+            Console.WriteLine($"Document '{document.Title}' has been rejected by {document.Approver.Name}: {feedback}");
+            document.Reject(feedback);
         }
         else
         {
-            Console.WriteLine("Only the approver can reject this document or document is not under review.");
+            Console.WriteLine("Cannot reject - you are not the approver.");
         }
     }
 
@@ -385,22 +432,22 @@ class Program
         Console.WriteLine("2. Word");
         string choice = Console.ReadLine();
 
-        IConversionStrategy strategy = choice switch
+        ConvertStrategy strategy = choice switch
         {
-            "1" => new PDFConversionStrategy(),
-            "2" => new WordConversionStrategy(),
+            "1" => new ConvertToPDF(),
+            "2" => new ConvertToWord(),
             _ => throw new ArgumentException("Invalid choice")
         };
 
-        document.ConversionStrategy = strategy;
+        document.ConvertStrategy = strategy;
         Console.WriteLine("Conversion strategy updated successfully.");
     }
 
     static void ConvertFile(Document document)
     {
-        if (document.ConversionStrategy != null)
+        if (document.ConvertStrategy != null)
         {
-            string result = document.ConversionStrategy.Convert(document);
+            string result = document.ConvertStrategy.Convert(document);
             Console.WriteLine(result);
         }
         else
