@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace SDP_Assignment.Jason
 {
-    public class WordConversionStrategy : IConversionStrategy
+    public class ConvertToWord : ConvertStrategy
     {
         public string Convert(Document document)
         {
