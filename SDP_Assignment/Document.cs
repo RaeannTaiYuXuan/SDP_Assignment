@@ -2,77 +2,108 @@
 using SDP_Assignment.MingQi;
 using SDP_Assignment.RAEANN;
 using SDP_Assignment;
+using SDP_Assignment.RAEANN.COMPOSITE;
+using System.Reflection.PortableExecutable;
+using System.Reflection.Metadata;
 
-public abstract class Document
+public abstract class Document : ISubject
 {
     private IDocumentState currentState;
-    private List<INotifiable> observers = new List<INotifiable>();
+    private List<NotifyObserver> observers = new List<NotifyObserver>();
 
     private string title;
-    private string header;
     private string content;
-    private string footer;
+    private IDocumentComponent header;
+    private IDocumentComponent footer;
     private User owner;
     private List<User> collaborators;
     private User approver;
     private string feedback;
 
     public string Title { get; set; }
-    public string Header { get; set; }
+
     public string Content { get; set; }
-    public string Footer { get; set; }
+    public IDocumentComponent Header { get; set; }
+    public IDocumentComponent Footer { get; set; }
     public User Owner { get; set; }
     public List<User> Collaborators { get; set; }
     public User Approver { get; internal set; }
     public string Feedback { get; internal set; }
     public ConvertStrategy ConvertStrategy { get; set; }
 
-    public Document(string title, string header, string footer, User owner)
+    public Document(string title, IDocumentComponent header, IDocumentComponent footer, User owner)
     {
         Title = title;
-        Header = header;
-        Footer = footer;
+        Header = header ?? new HeaderComponent("DEFAULT HEADER"); // ✅ Prevent null
+        Footer = footer ?? new FooterComponent("DEFAULT FOOTER"); // ✅ Prevent null
         Owner = owner;
         Collaborators = new List<User>();
         Content = string.Empty;
         currentState = new DraftState(); // Initial state
 
-        AttachObserver(owner);  // Automatically add the owner as an observer
+        AttachObserver(owner);  // ✅ Automatically add the owner as an observer
     }
 
-    // State methods
     public void SetState(IDocumentState newState)
     {
         currentState = newState;
+    }
 
-        if (newState is UnderReviewState)
+
+    public void AttachObserver(NotifyObserver observer)
+    {
+        if (!observers.Contains(observer))
         {
-            Console.WriteLine($"Document '{Title}' is now under review.");
+            observers.Add(observer);
         }
-        else if (newState is DraftState)
+    }
+
+    public void DetachObserver(NotifyObserver observer)
+    {
+        observers.Remove(observer);
+    }
+
+    public void NotifyObservers(NotificationType type, string message, User excludeUser = null)
+    {
+        foreach (var observer in observers)
         {
-            Console.WriteLine($"Document '{Title}' is back in draft state.");
+            if (observer != excludeUser)  // ✅ Avoid notifying excluded user
+            {
+                observer.Notify(type, message);
+            }
         }
     }
 
     public void SubmitForApproval(User approver)
     {
+        if (!observers.Contains(approver)) //  Ensure approver is added only once
+        {
+            AttachObserver(approver);
+        }
+
         currentState.SubmitForApproval(this, approver, observers);
+
+        // ✅ Notify only ONCE, not per observer
+        Console.WriteLine($"[Notification] DocumentSubmitted - {approver.Name} is set to be the approver.");
     }
+
 
     public void Approve()
     {
         currentState.Approve(this, observers);
+        NotifyObservers(NotificationType.DocumentApproved, $"Document '{Title}' has been approved by {Approver.Name}.");
     }
 
     public void PushBack(string comments)
     {
         currentState.PushBack(this, comments, observers);
+        NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{Title}' has been pushed back with comments: {comments}");
     }
 
     public void Reject(string feedback)
     {
         currentState.Reject(this, feedback, observers);
+        NotifyObservers(NotificationType.DocumentRejected, $"Document '{Title}' has been rejected with reason: {feedback}");
     }
 
     public void ResumeEditing()
@@ -82,7 +113,10 @@ public abstract class Document
 
     public void EditContent(string newContent)
     {
-        currentState.EditContent(this, newContent, observers);
+        Content = newContent;
+        NotifyObservers(NotificationType.DocumentEdited, $"Document '{Title}' has been edited.");
+
+        Display(); // ✅ Now it will display the full document after an edit
     }
 
     public bool IsUnderReview
@@ -95,31 +129,6 @@ public abstract class Document
         get { return currentState is RejectedState; }
     }
 
-    // Observer Methods
-    public void AttachObserver(INotifiable observer)
-    {
-        if (!observers.Contains(observer))
-        {
-            observers.Add(observer);
-        }
-    }
-
-    public void DetachObserver(INotifiable observer)
-    {
-        if (observers.Contains(observer))
-        {
-            observers.Remove(observer);
-        }
-    }
-
-    internal void NotifyObservers(string message)
-    {
-        foreach (var observer in observers)
-        {
-            observer.Notify(message);
-        }
-    }
-
     public void ClearFeedback()
     {
         Feedback = null;
@@ -127,14 +136,15 @@ public abstract class Document
 
     public virtual void Display()
     {
-        Console.WriteLine("====================================");
+
+        Console.WriteLine(Header.Render()); // ✅ Displays header
         Console.WriteLine($"Title: {Title}");
-        Console.WriteLine($"Header: {Header}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine($"Footer: {Footer}");
-        Console.WriteLine("====================================");
+        Console.WriteLine(Footer.Render()); // ✅ Displays footer
+        Console.WriteLine("======================");
     }
+
 
     public void AddCollaborator(User loggedInUser, User collaborator)
     {
@@ -144,6 +154,26 @@ public abstract class Document
             return;
         }
 
-        currentState.AddCollaborator(this, collaborator, observers);
+        if (collaborator != null && collaborator != Owner && !Collaborators.Contains(collaborator))
+        {
+            Collaborators.Add(collaborator);
+            AttachObserver(collaborator); // ✅ Ensure the collaborator is added as an observer
+
+            // ✅ Store a notification for the new collaborator
+            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+                $"You have been added as a collaborator to document '{Title}'.");
+
+            Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{Title}'.");
+
+            // ✅ Notify existing observers (excluding the new collaborator)
+            NotifyObservers(NotificationType.CollaboratorAdded,
+                $"Collaborator '{collaborator.Name}' added to document '{Title}'.", excludeUser: collaborator);
+
+            
+        }
+        else
+        {
+            Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
+        }
     }
 }
