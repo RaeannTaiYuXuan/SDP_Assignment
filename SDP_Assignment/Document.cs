@@ -20,6 +20,12 @@ public abstract class Document : ISubject
     private User approver;
     private string feedback;
 
+    // Track applied decorators======================================
+    private List<string> appliedDecorators = new List<string>();
+    public List<string> AppliedDecorators => appliedDecorators;
+    //================================================================
+
+
     public string Title { get; set; }
 
     public string Content { get; set; }
@@ -47,15 +53,6 @@ public abstract class Document : ISubject
     public void SetState(IDocumentState newState)
     {
         currentState = newState;
-
-        if (newState is UnderReviewState)
-        {
-            Console.WriteLine($"Document '{Title}' is now under review.");
-        }
-        else if (newState is DraftState)
-        {
-            Console.WriteLine($"Document '{Title}' is back in draft state.");
-        }
     }
 
 
@@ -85,11 +82,6 @@ public abstract class Document : ISubject
 
     public void SubmitForApproval(User approver)
     {
-        if (!observers.Contains(approver))
-        {
-            AttachObserver(approver);
-        }
-
         currentState.SubmitForApproval(this, approver, observers);
     }
 
@@ -130,7 +122,10 @@ public abstract class Document : ISubject
     {
         get { return currentState is UnderReviewState; }
     }
-
+    public bool IsApproved
+    {
+        get { return currentState is ApprovedState; }
+    }
     public bool IsRejected
     {
         get { return currentState is RejectedState; }
@@ -144,17 +139,45 @@ public abstract class Document : ISubject
     public virtual void Display()
     {
 
-        Console.WriteLine(Header.Render()); 
+       
+        Console.WriteLine(Header.Render()); // ✅ Displays formatted header
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render()); 
-        Console.WriteLine("======================");
+        Console.WriteLine(Footer.Render()); // ✅ Displays formatted footer
+        
+
+        // Show applied decorators
+        if (appliedDecorators.Count > 0)
+        {
+            Console.WriteLine($"Enhancements: {string.Join(", ", appliedDecorators)}");
+        }
+        else
+        {
+            Console.WriteLine("No enhancements applied.");
+        }
+
+        
     }
+
+    public bool HasDecorator(string decorator)
+    {
+        return appliedDecorators.Contains(decorator);
+    }
+
+    public void AddDecorator(string decorator)
+    {
+        if (!appliedDecorators.Contains(decorator))
+        {
+            appliedDecorators.Add(decorator);
+        }
+    }
+
 
 
     public void AddCollaborator(User loggedInUser, User collaborator)
     {
+
         if (Owner != loggedInUser)
         {
             Console.WriteLine("Only the owner can add collaborators.");
@@ -163,16 +186,7 @@ public abstract class Document : ISubject
 
         if (collaborator != null && collaborator != Owner && !Collaborators.Contains(collaborator))
         {
-            Collaborators.Add(collaborator);
-            AttachObserver(collaborator);
-
-            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
-                $"You have been added as a collaborator to document '{Title}'.");
-
-            Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{Title}'.");
-
-            NotifyObservers(NotificationType.CollaboratorAdded,
-                $"Collaborator '{collaborator.Name}' added to document '{Title}'.", excludeUser:approver);
+            currentState.AddCollaborator(this, collaborator, observers);
         }
         else
         {
