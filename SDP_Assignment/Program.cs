@@ -55,7 +55,7 @@ class Program
                     ListUsers();
                     break;
                 case "4":
-                    ListDocuments();
+                    ListAllDocuments();
                     break;
                 case "5":
                     running = false;
@@ -100,137 +100,135 @@ class Program
             Console.WriteLine($"- {user.Name}");
     }
 
-    static void ListDocuments()
+    public static void ListAllDocuments()
     {
-        Console.WriteLine("\n===== List Documents =====");
-        Console.WriteLine("1. List All Documents");
-        Console.WriteLine("2. List My Documents");
+        Console.WriteLine("\nSelect Document Type to List:");
+        Console.WriteLine("1. All Documents");
+        Console.WriteLine("2. Technical Report");
+        Console.WriteLine("3. Grant Proposal");
         Console.Write("Select an option: ");
-
-        string choice = Console.ReadLine();
+        string? choice = Console.ReadLine();
         Console.WriteLine();
 
-        switch (choice)
+        string typeFilter = choice switch
         {
-            case "1":
-                ListAllDocuments();
-                break;
-            case "2":
-                if (loggedInUser == null)
-                {
-                    Console.WriteLine("Please login to view your own documents.");
-                    break;
-                }
-                // New prompt for user's document options
-                Console.WriteLine("\nList My Documents Options:");
-                Console.WriteLine("1. List Owned Documents");
-                Console.WriteLine("2. List Documents I'm In");
-                Console.Write("Select an option: ");
-                string subChoice = Console.ReadLine();
-                Console.WriteLine();
+            "1" => "All",
+            "2" => "TechnicalReport",
+            "3" => "GrantProposal",
+            _ => string.Empty
+        };
 
-                if (subChoice == "1")
-                    ListOwnedDocuments();
-                else if (subChoice == "2")
-                    ListCollabDocuments();
-                else
-                    Console.WriteLine("Invalid option.");
-                break;
-            default:
-                Console.WriteLine("Invalid option. Please try again.");
-                break;
+        if (string.IsNullOrEmpty(typeFilter))
+        {
+            Console.WriteLine("Invalid option.");
+            return;
         }
-    }
 
-    // Jason's Iterators Stuff
-    static void ListAllDocuments()
-    {
-        // Create an aggregate from the documents list
-        DocumentAggregate aggregate = new DocumentAggregate(documents);
+        var aggregate = new DocumentAggregate(documents);
+        using IEnumerator<Document> enumerator = typeFilter == "All"
+            ? aggregate.GetEnumerator()
+            : new FilterEnumerator(
+                aggregate.GetEnumerator(),
+                doc => doc.GetType().Name.Equals(typeFilter, StringComparison.OrdinalIgnoreCase)
+            );
 
-        // Create an iterator for the aggregate
-        IIterator iterator = aggregate.CreateIterator();
+        Console.WriteLine($"\nDocuments ({(typeFilter == "All" ? "All" : typeFilter)}):");
 
-        // Print header for all documents
-        Console.WriteLine("\nAll Documents:");
-
-        // Iterate through all documents
-        while (iterator.HasNext())
+        while (enumerator.MoveNext())
         {
-            // Get the next document
-            Document doc = (Document)iterator.Next();
-
-            // Determine the conversion format or use "Not Set" if none
-            string format = doc.ConvertStrategy != null
-                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
-                : "Not Set";
-
+            Document doc = enumerator.Current;
+            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
             Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
         }
     }
 
-    static void ListOwnedDocuments()
-    {
-        // Create an aggregate from the documents list
-        DocumentAggregate aggregate = new DocumentAggregate(documents);
-
-        // Create an iterator for the aggregate
-        IIterator baseIterator = aggregate.CreateIterator();
-
-        // Create a filter iterator that only returns documents where the owner is the loggedInUser
-        IIterator filterIterator = new FilterIterator(baseIterator, (obj) =>
+    /*    static void ListAllDocuments()
         {
-            Document doc = (Document)obj;
-            return doc.Owner == loggedInUser;
-        });
+            // Print header for all documents
+            Console.WriteLine("\nAll Documents:");
+
+            // Iterate through all documents in the list directly
+            foreach (Document doc in documents)
+            {
+                // Determine the conversion format or use "Not Set" if none
+                string format = doc.ConvertStrategy != null
+                    ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
+                    : "Not Set";
+
+                // Print the document details
+                Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
+            }
+        }
+    */
+    // Jason's Iterators Stuff
+
+    public static void ListOwnedDocuments()
+    {
+        if (loggedInUser == null)
+        {
+            Console.WriteLine("No user logged in.");
+            return;
+        }
+
+        var aggregate = new DocumentAggregate(documents);
+        using var enumerator = new FilterEnumerator(
+            aggregate.GetEnumerator(),
+            doc => doc.Owner == loggedInUser
+        );
 
         Console.WriteLine("\nYour Owned Documents:");
-        // Iterate through the filtered documents
-        while (filterIterator.HasNext())
+
+        while (enumerator.MoveNext())
         {
-            // Get the next document
-            Document doc = (Document)filterIterator.Next();
+            Document doc = enumerator.Current;
+            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
 
-            // Determine the conversion format or set as "Not Set" if none
-            string format = doc.ConvertStrategy != null
-                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
-                : "Not Set";
-
-            
-            Console.WriteLine($"- {doc.Title} (Format: {format})");
+            // Show document with enhanced details
+            Console.WriteLine($"- {doc.Title}");
+            Console.WriteLine($"  Format: {format}");
+            if (doc.Collaborators.Any())
+            {
+                Console.WriteLine($"  Collaborators: {string.Join(", ", doc.Collaborators.Select(c => c.Name))}");
+            }
+            if (doc.AppliedDecorators.Any())
+            {
+                Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
+            }
         }
     }
 
-
-    static void ListCollabDocuments()
+    public static void ListCollabDocuments()
     {
-        // Create an aggregate from the documents list
-        DocumentAggregate aggregate = new DocumentAggregate(documents);
-
-        // Create a base iterator for the aggregate
-        IIterator baseIterator = aggregate.CreateIterator();
-
-        // Create a filter iterator to return documents where loggedInUser is a collaborator or approver, but not the owner
-        IIterator filterIterator = new FilterIterator(baseIterator, (obj) =>
+        if (loggedInUser == null)
         {
-            Document doc = (Document)obj;
-            return (doc.Collaborators.Contains(loggedInUser) || doc.Approver == loggedInUser)
-                   && doc.Owner != loggedInUser;
-        });
+            Console.WriteLine("No user logged in.");
+            return;
+        }
+
+        var aggregate = new DocumentAggregate(documents);
+        using var enumerator = new FilterEnumerator(
+            aggregate.GetEnumerator(),
+            doc => (doc.Collaborators.Contains(loggedInUser) || doc.Approver == loggedInUser)
+                   && doc.Owner != loggedInUser
+        );
 
         Console.WriteLine("\nDocuments I'm In:");
 
-        // Iterate through filtered documents
-        while (filterIterator.HasNext())
+        while (enumerator.MoveNext())
         {
-            // Get the next document from the iterator
-            Document doc = (Document)filterIterator.Next();
-            // Determine conversion format or set to "Not Set" if none
-            string format = doc.ConvertStrategy != null
-                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
-                : "Not Set";
+            Document doc = enumerator.Current;
+            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
+            string role = doc.Approver == loggedInUser ? "Approver" : "Collaborator";
 
-            Console.WriteLine($"- {doc.Title} (Format: {format})");
+            // Show document with enhanced details
+            Console.WriteLine($"- {doc.Title}");
+            Console.WriteLine($"  Owner: {doc.Owner.Name}");
+            Console.WriteLine($"  Your Role: {role}");
+            Console.WriteLine($"  Format: {format}");
+            if (doc.AppliedDecorators.Any())
+            {
+                Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
+            }
         }
     }
 
