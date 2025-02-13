@@ -222,7 +222,7 @@ class Program
         Console.Write("Select an option: ");
 
         IDocumentFactory factory;
-        CompositeHeaderComponent header = new CompositeHeaderComponent();
+        CompositeComponent header = new CompositeComponent();
         IDocumentComponent footer = new FooterComponent("==== Confidential Footer ====");
 
         switch (Console.ReadLine())

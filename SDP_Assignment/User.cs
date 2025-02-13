@@ -17,16 +17,16 @@ namespace SDP_Assignment
             Name = name;
         }
 
-        public void Notify(NotificationType type, string message)
+        public void Update(string message)
         {
             //Store notifications instead of printing them immediately
-            StoreNotification(type, message);
-            Console.WriteLine($"[Notification - {Name}] {type} - {message}"); 
+            StoreNotification(message);
+            Console.WriteLine($"[Notification - {Name}] {message}"); 
         }
 
-        public void StoreNotification(NotificationType type, string message)
+        public void StoreNotification(string message)
         {
-            string formattedMessage = $"[Notification - {Name}] {type} - {message}";
+            string formattedMessage = $"[Notification - {Name}] {message}";
             notificationHistory.Add(formattedMessage);
         }
 

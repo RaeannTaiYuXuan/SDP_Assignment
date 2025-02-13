@@ -8,9 +8,10 @@ namespace SDP_Assignment.RAEANN
 {
     public interface ISubject
     {
-        void AttachObserver(NotifyObserver observer);
-        void DetachObserver(NotifyObserver observer);
-        void NotifyObservers(NotificationType type, string message, User excludeUser = null);
+        void RegisterObserver(NotifyObserver observer);  
+        void RemoveObserver(NotifyObserver observer);    
+        void NotifyObservers(string message, User excludeUser = null);  
     }
+
 
 }
