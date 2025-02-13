@@ -9,6 +9,6 @@ namespace SDP_Assignment.Jason.ITERATOR
     // Aggregate interface
     public interface IAggregate
     {
-        IIterator CreateIterator();
+        IEnumerator<Document> GetEnumerator();
     }
 }
