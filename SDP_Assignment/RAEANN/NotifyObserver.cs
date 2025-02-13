@@ -8,8 +8,8 @@ namespace SDP_Assignment.RAEANN
 {
     public interface NotifyObserver
     {
-        void Notify(NotificationType type, string message);
-        void StoreNotification(NotificationType type, string message);
+        void Update(string message);
+        void StoreNotification(string message);
     }
 
 

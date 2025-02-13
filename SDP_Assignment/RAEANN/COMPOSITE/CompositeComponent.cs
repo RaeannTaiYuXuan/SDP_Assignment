@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SDP_Assignment.RAEANN.COMPOSITE
 {
-    public class CompositeHeaderComponent : IDocumentComponent
+    public class CompositeComponent : IDocumentComponent
     {
         //store multiple header components, allow individual headers and nested composite header to be stored, enables hierarchical header structure
         private List<IDocumentComponent> children = new List<IDocumentComponent>();

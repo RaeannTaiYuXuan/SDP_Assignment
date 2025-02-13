@@ -18,7 +18,7 @@ namespace SDP_Assignment.MingQi
         {
             document.SetState(new ApprovedState());
 
-            document.NotifyObservers(NotificationType.DocumentApproved, $"Document '{document.Title}' has been approved by {document.Approver.Name}.", excludeUser: document.Approver);
+            document.NotifyObservers($"Document '{document.Title}' has been approved by {document.Approver.Name}.", excludeUser: document.Approver);
    
         }
 
@@ -29,7 +29,7 @@ namespace SDP_Assignment.MingQi
 
             string message = $"Document '{document.Title}' has been pushed back with comments: {comments}";
 
-            document.NotifyObservers(NotificationType.DocumentPushedBack, message, excludeUser: document.Approver);
+            document.NotifyObservers(message, excludeUser: document.Approver);
 
         }
 
@@ -38,7 +38,7 @@ namespace SDP_Assignment.MingQi
             document.SetState(new RejectedState());
             document.Approver = null;
 
-            document.NotifyObservers(NotificationType.DocumentRejected, $"Document '{document.Title}' has been rejected with reason: {feedback}", excludeUser: document.Approver);
+            document.NotifyObservers($"Document '{document.Title}' has been rejected with reason: {feedback}", excludeUser: document.Approver);
         }
 
 
@@ -61,14 +61,14 @@ namespace SDP_Assignment.MingQi
             }
 
             document.Collaborators.Add(collaborator);
-            document.AttachObserver(collaborator);
+            document.RegisterObserver(collaborator);
 
-            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+            collaborator.StoreNotification(
                 $"You have been added as a collaborator to document '{document.Title}'.");
 
             Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
 
-            document.NotifyObservers(NotificationType.CollaboratorAdded,
+            document.NotifyObservers(
                             $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.", excludeUser: document.Approver);
         }
 
