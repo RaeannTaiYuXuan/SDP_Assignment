@@ -4,6 +4,7 @@
 
 using SDP_Assignment;
 using SDP_Assignment.Jason;
+using SDP_Assignment.Jason.ITERATOR;
 using SDP_Assignment.SHIYING;
 using SDP_Assignment.SHIYING.DECORATOR;
 using SDP_Assignment.MingQi;
@@ -22,6 +23,9 @@ class Program
 
     static void Main(string[] args)
     {
+        // Preload some fake data
+        SeedData();
+
         bool running = true;
         while (running)
         {
@@ -81,8 +85,6 @@ class Program
         if (loggedInUser != null)
         {
             Console.WriteLine($"Welcome, {loggedInUser.Name}!");
-
-            // ✅ Show stored notifications upon login
             loggedInUser.ShowNotifications();
         }
         else
@@ -90,7 +92,6 @@ class Program
             Console.WriteLine("User not found. Please create a user first.");
         }
     }
-
 
     static void ListUsers()
     {
@@ -103,7 +104,7 @@ class Program
     {
         Console.WriteLine("\n===== List Documents =====");
         Console.WriteLine("1. List All Documents");
-        Console.WriteLine("2. List My Owned Documents");
+        Console.WriteLine("2. List My Documents");
         Console.Write("Select an option: ");
 
         string choice = Console.ReadLine();
@@ -115,7 +116,25 @@ class Program
                 ListAllDocuments();
                 break;
             case "2":
-                ListOwnedDocuments();
+                if (loggedInUser == null)
+                {
+                    Console.WriteLine("Please login to view your own documents.");
+                    break;
+                }
+                // New prompt for user's document options
+                Console.WriteLine("\nList My Documents Options:");
+                Console.WriteLine("1. List Owned Documents");
+                Console.WriteLine("2. List Documents I'm In");
+                Console.Write("Select an option: ");
+                string subChoice = Console.ReadLine();
+                Console.WriteLine();
+
+                if (subChoice == "1")
+                    ListOwnedDocuments();
+                else if (subChoice == "2")
+                    ListCollabDocuments();
+                else
+                    Console.WriteLine("Invalid option.");
                 break;
             default:
                 Console.WriteLine("Invalid option. Please try again.");
@@ -123,43 +142,98 @@ class Program
         }
     }
 
+    // Jason's Iterators Stuff
     static void ListAllDocuments()
     {
-        Console.WriteLine("\nAvailable Documents:");
+        // Create an aggregate from the documents list
+        DocumentAggregate aggregate = new DocumentAggregate(documents);
 
-        if (documents.Any())
+        // Create an iterator for the aggregate
+        IIterator iterator = aggregate.CreateIterator();
+
+        // Print header for all documents
+        Console.WriteLine("\nAll Documents:");
+
+        // Iterate through all documents
+        while (iterator.HasNext())
         {
-            foreach (var doc in documents)
-            {
-                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConversionStrategy", "") : "Not Set";
-                Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
-            }
-        }
-        else
-        {
-            Console.WriteLine("No documents available.");
+            // Get the next document
+            Document doc = (Document)iterator.Next();
+
+            // Determine the conversion format or use "Not Set" if none
+            string format = doc.ConvertStrategy != null
+                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
+                : "Not Set";
+
+            Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
         }
     }
 
     static void ListOwnedDocuments()
     {
-        var ownedDocs = documents.Where(d => d.Owner == loggedInUser).ToList();
+        // Create an aggregate from the documents list
+        DocumentAggregate aggregate = new DocumentAggregate(documents);
+
+        // Create an iterator for the aggregate
+        IIterator baseIterator = aggregate.CreateIterator();
+
+        // Create a filter iterator that only returns documents where the owner is the loggedInUser
+        IIterator filterIterator = new FilterIterator(baseIterator, (obj) =>
+        {
+            Document doc = (Document)obj;
+            return doc.Owner == loggedInUser;
+        });
 
         Console.WriteLine("\nYour Owned Documents:");
+        // Iterate through the filtered documents
+        while (filterIterator.HasNext())
+        {
+            // Get the next document
+            Document doc = (Document)filterIterator.Next();
 
-        if (ownedDocs.Any())
-        {
-            foreach (var doc in ownedDocs)
-            {
-                string format = doc.ConvertStrategy != null ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "") : "Not Set";
-                Console.WriteLine($"- {doc.Title} (Format: {format})");
-            }
-        }
-        else
-        {
-            Console.WriteLine("You do not own any documents.");
+            // Determine the conversion format or set as "Not Set" if none
+            string format = doc.ConvertStrategy != null
+                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
+                : "Not Set";
+
+            
+            Console.WriteLine($"- {doc.Title} (Format: {format})");
         }
     }
+
+
+    static void ListCollabDocuments()
+    {
+        // Create an aggregate from the documents list
+        DocumentAggregate aggregate = new DocumentAggregate(documents);
+
+        // Create a base iterator for the aggregate
+        IIterator baseIterator = aggregate.CreateIterator();
+
+        // Create a filter iterator to return documents where loggedInUser is a collaborator or approver, but not the owner
+        IIterator filterIterator = new FilterIterator(baseIterator, (obj) =>
+        {
+            Document doc = (Document)obj;
+            return (doc.Collaborators.Contains(loggedInUser) || doc.Approver == loggedInUser)
+                   && doc.Owner != loggedInUser;
+        });
+
+        Console.WriteLine("\nDocuments I'm In:");
+
+        // Iterate through filtered documents
+        while (filterIterator.HasNext())
+        {
+            // Get the next document from the iterator
+            Document doc = (Document)filterIterator.Next();
+            // Determine conversion format or set to "Not Set" if none
+            string format = doc.ConvertStrategy != null
+                ? doc.ConvertStrategy.GetType().Name.Replace("ConvertStrategy", "")
+                : "Not Set";
+
+            Console.WriteLine($"- {doc.Title} (Format: {format})");
+        }
+    }
+
 
     static void UserMenu()
     {
@@ -187,7 +261,20 @@ class Program
                     ManageDocument();
                     break;
                 case "3":
-                    ListOwnedDocuments();
+                    // Reuse the same document options prompt as in ListDocuments()
+                    Console.WriteLine("\nList My Documents Options:");
+                    Console.WriteLine("1. List Owned Documents");
+                    Console.WriteLine("2. List Documents I'm In");
+                    Console.Write("Select an option: ");
+                    string subChoice = Console.ReadLine();
+                    Console.WriteLine();
+
+                    if (subChoice == "1")
+                        ListOwnedDocuments();
+                    else if (subChoice == "2")
+                        ListCollabDocuments();
+                    else
+                        Console.WriteLine("Invalid option.");
                     break;
                 case "4":
                     userRunning = false;
@@ -204,11 +291,11 @@ class Program
     static void NotifyPushedBackDocuments()
     {
         var pushedBackDocs = documents.Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser)) && !string.IsNullOrEmpty(d.Feedback));
-
-        //foreach (var doc in pushedBackDocs)
-        //{
-        //    Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
-        //}
+        // Uncomment if you want to show notifications:
+        // foreach (var doc in pushedBackDocs)
+        // {
+        //     Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
+        // }
     }
 
     static void CreateDocument()
@@ -248,10 +335,8 @@ class Program
         documents.Add(doc);
 
         Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
-        doc.Display(); // ✅ Ensure document is displayed correctly
+        doc.Display(); // Ensure document is displayed correctly
     }
-
-
 
     static void ManageDocument()
     {
@@ -319,17 +404,15 @@ class Program
 
     static void EditDocument(Document document)
     {
-
         if (document.IsUnderReview)
         {
             Console.WriteLine("Cannot edit - document is under review.");
             return;
         }
-
         else if (document.IsApproved)
         {
             Console.WriteLine("Cannot edit - document has already been approved.");
-            return; 
+            return;
         }
         else
         {
@@ -396,9 +479,9 @@ class Program
             document.SubmitForApproval(document.Approver);
         }
     }
-    static void PushBackDocument(Document document)
-    { 
 
+    static void PushBackDocument(Document document)
+    {
         if (document.Approver == loggedInUser)
         {
             Console.Write("Enter comments for push back: ");
@@ -426,7 +509,6 @@ class Program
 
     static void RejectDocument(Document document)
     {
-
         if (document.Approver == loggedInUser)
         {
             Console.WriteLine("Enter rejection reason: ");
@@ -556,5 +638,53 @@ class Program
         return doc; // Return the decorated document
     }
 
+    static void SeedData()
+    {
+        Console.WriteLine("Loading Test Data\n==================================================");
+        // Create three users: Bob, Jeff, and John.
+        User bob = new User("Bob");
+        User jeff = new User("Jeff");
+        User john = new User("John");
+
+        // Add users to the system.
+        users.Add(bob);
+        users.Add(jeff);
+        users.Add(john);
+
+        // Create a Technical Report for Bob.
+        CompositeComponent headerBob = new CompositeComponent();
+        headerBob.Add(new HeaderComponent("===== Technical Report ====="));
+        headerBob.Add(new HeaderComponent("Author: Bob"));
+        IDocumentComponent footerBob = new FooterComponent("==== Confidential Footer ====");
+        IDocumentFactory techFactory = new TechnicalReportFactory();
+        Document bobDoc = techFactory.CreateDocument("Bob Report", "Content for Bob's report.", bob, headerBob, footerBob);
+        documents.Add(bobDoc);
+
+        // Create a Grant Proposal for Jeff.
+        CompositeComponent headerJeff = new CompositeComponent();
+        headerJeff.Add(new HeaderComponent("===== Grant Proposal ====="));
+        headerJeff.Add(new HeaderComponent("Submitted by: Jeff"));
+        IDocumentComponent footerJeff = new FooterComponent("==== Confidential Footer ====");
+        IDocumentFactory grantFactory = new GrantProposalFactory();
+        Document jeffDoc = grantFactory.CreateDocument("Jeff Grant", "Content for Jeff's proposal.", jeff, headerJeff, footerJeff);
+        documents.Add(jeffDoc);
+
+        // Create a Technical Report for John.
+        CompositeComponent headerJohn = new CompositeComponent();
+        headerJohn.Add(new HeaderComponent("===== Technical Report ====="));
+        headerJohn.Add(new HeaderComponent("Author: John"));
+        IDocumentComponent footerJohn = new FooterComponent("==== Confidential Footer ====");
+        Document johnDoc = techFactory.CreateDocument("John Report", "Content for John's report.", john, headerJohn, footerJohn);
+        documents.Add(johnDoc);
+
+        // Add Jeff as a collaborator to John's document.
+        johnDoc.AddCollaborator(john, jeff);
+
+        Console.WriteLine("Users: Jeff, John, Bob");
+        Console.WriteLine("Documents: Jeff Grant, John Report, Bob Report");
+        Console.WriteLine("==================================================");
+        Console.WriteLine("Test Data Created");
+
+    }
 
 }
