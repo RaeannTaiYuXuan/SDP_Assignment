@@ -15,7 +15,7 @@ public abstract class Document : ISubject
     private string content;
     private IDocumentComponent header;
     private IDocumentComponent footer;
-    private User owner;
+    private User owner; 
     private List<User> collaborators;
     private User approver;
     private string feedback;
@@ -47,7 +47,7 @@ public abstract class Document : ISubject
         Content = string.Empty;
         currentState = new DraftState(); // Initial state
 
-        AttachObserver(owner);
+        RegisterObserver(owner);
     }
 
     public void SetState(IDocumentState newState)
@@ -56,7 +56,7 @@ public abstract class Document : ISubject
     }
 
 
-    public void AttachObserver(NotifyObserver observer)
+    public void RegisterObserver(NotifyObserver observer)
     {
         if (!observers.Contains(observer))
         {
@@ -64,18 +64,18 @@ public abstract class Document : ISubject
         }
     }
 
-    public void DetachObserver(NotifyObserver observer)
+    public void RemoveObserver(NotifyObserver observer)
     {
         observers.Remove(observer);
     }
 
-    public void NotifyObservers(NotificationType type, string message, User excludeUser = null)
+    public void NotifyObservers(string message, User excludeUser = null)
     {
         foreach (var observer in observers)
         {
             if (observer != excludeUser)  
             {
-                observer.Notify(type, message);
+                observer.Update(message);
             }
         }
     }
@@ -114,7 +114,7 @@ public abstract class Document : ISubject
     public void EditContent(string newContent)
     {
         Content = newContent;
-        NotifyObservers(NotificationType.DocumentEdited, $"Document '{Title}' has been edited.");
+        NotifyObservers($"Document '{Title}' has been edited.");
         Display();
     }
 
@@ -139,11 +139,13 @@ public abstract class Document : ISubject
     public virtual void Display()
     {
 
-        Console.WriteLine(Header.Render()); 
+       
+        Console.WriteLine(Header.Render()); // ✅ Displays formatted header
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render());
+        Console.WriteLine(Footer.Render()); // ✅ Displays formatted footer
+        
 
         // Show applied decorators
         if (appliedDecorators.Count > 0)
@@ -155,7 +157,7 @@ public abstract class Document : ISubject
             Console.WriteLine("No enhancements applied.");
         }
 
-        Console.WriteLine("======================");
+        
     }
 
     public bool HasDecorator(string decorator)

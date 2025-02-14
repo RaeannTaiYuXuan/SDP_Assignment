@@ -18,10 +18,10 @@ namespace SDP_Assignment.MingQi
             else if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
             {
                 document.Approver = approver;
-                approver.Notify(NotificationType.DocumentSubmitted, $"You have been set as the approver for document '{document.Title}'.");
+                approver.Update($"You have been set as the approver for document '{document.Title}'.");
 
                 string message = $"Document '{document.Title}' submitted for review to {approver.Name}.";
-                document.NotifyObservers(NotificationType.DocumentSubmitted, message, excludeUser: approver);
+                document.NotifyObservers(message, excludeUser: approver);
             }
             else
             {
@@ -56,7 +56,7 @@ namespace SDP_Assignment.MingQi
             document.Content = newContent;
             document.ClearFeedback();
 
-            document.NotifyObservers(NotificationType.DocumentEdited,
+            document.NotifyObservers(
                $"Document '{document.Title}' has been edited.");
         }
 
@@ -69,14 +69,14 @@ namespace SDP_Assignment.MingQi
             }
 
             document.Collaborators.Add(collaborator);
-            document.AttachObserver(collaborator);
+            document.RegisterObserver(collaborator);
 
-            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+            collaborator.StoreNotification(
                 $"You have been added as a collaborator to document '{document.Title}'.");
 
             Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
 
-            document.NotifyObservers(NotificationType.CollaboratorAdded,
+            document.NotifyObservers(
                             $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.", excludeUser: document.Approver);
         }
     }
