@@ -5,6 +5,7 @@ using SDP_Assignment;
 using SDP_Assignment.RAEANN.COMPOSITE;
 using System.Reflection.PortableExecutable;
 using System.Reflection.Metadata;
+using System.ComponentModel;
 
 public abstract class Document : ISubject
 {
@@ -19,6 +20,8 @@ public abstract class Document : ISubject
     private List<User> collaborators;
     private User approver;
     private string feedback;
+
+
 
     // Track applied decorators======================================
     private List<string> appliedDecorators = new List<string>();
@@ -111,12 +114,20 @@ public abstract class Document : ISubject
         currentState.ResumeEditing(this, observers);
     }
 
-    public void EditContent(string newContent)
+    public void EditContent(User loggedInUser, string newContent)
     {
         Content = newContent;
-        NotifyObservers($"Document '{Title}' has been edited.");
+        NotifyObservers($"Document '{Title}' has been edited by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
+
+        if (currentState is RejectedState rejectedState)
+        {
+            rejectedState.ResumeEditing(this, observers); // Reset the "must edit before resubmitting" flag
+        }
+
+        Console.WriteLine($"Document '{Title}' has been updated by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
         Display();
     }
+
 
     public bool IsUnderReview
     {
