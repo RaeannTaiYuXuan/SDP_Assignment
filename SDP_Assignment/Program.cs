@@ -337,7 +337,7 @@ class Program
             {
                 Console.Write("Enter new content: ");
                 string newContent = Console.ReadLine();
-                document.EditContent(newContent);
+                document.EditContent(loggedInUser,newContent);
             }
             else
             {
