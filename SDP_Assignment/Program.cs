@@ -18,7 +18,7 @@ using System.ComponentModel.DataAnnotations;
 class Program
 {
     static List<User> users = new List<User>();
-    static List<Document> documents = new List<Document>();
+    static DocumentManager documentManager = new DocumentManager();
     static User loggedInUser = null;
 
     static void Main(string[] args)
@@ -104,16 +104,14 @@ class Program
 
     public static void ListAllDocuments()
     {
-        // Prompt the user for option
         Console.WriteLine("\nSelect Document Type to List:");
         Console.WriteLine("1. All Documents");
         Console.WriteLine("2. Technical Report");
         Console.WriteLine("3. Grant Proposal");
         Console.Write("Select an option: ");
-        string? choice = Console.ReadLine();
+        string choice = Console.ReadLine();
         Console.WriteLine();
 
-        // Set filter type based on the choice
         string typeFilter = choice switch
         {
             "1" => "All",
@@ -122,18 +120,14 @@ class Program
             _ => string.Empty
         };
 
-        // display error if no options were picked or invalid option
         if (string.IsNullOrEmpty(typeFilter))
         {
             Console.WriteLine("Invalid option.");
             return;
         }
 
-        // Create an aggregate from the documents list
-        var aggregate = new DocumentAggregate(documents);
+        var aggregate = documentManager.GetDocumentAggregate();
 
-        // Get an enumerator; if all is selected calls the base enumerator 
-        // else use the FilterEnumerator to filter documents by type
         using IEnumerator<Document> enumerator = typeFilter == "All"
             ? aggregate.GetEnumerator()
             : new FilterEnumerator(
@@ -143,57 +137,41 @@ class Program
 
         Console.WriteLine($"\nDocuments ({(typeFilter == "All" ? "All" : typeFilter)}):");
 
-        // Iterate through the enumerator and print document details
         while (enumerator.MoveNext())
         {
             Document doc = enumerator.Current;
-
-            // check format type if not set to null 
             string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-
             Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
         }
     }
 
     public static void ListOwnedDocuments()
     {
-        // Check if user is logged in 
         if (loggedInUser == null)
         {
             Console.WriteLine("No user logged in.");
             return;
         }
 
-        // Create an aggregate from the documents list
-        var aggregate = new DocumentAggregate(documents);
+        var aggregate = documentManager.GetDocumentAggregate();
 
-        // Create a FilterEnumerator to get documents where the owner is the loggedInUser
         using var enumerator = new FilterEnumerator(
             aggregate.GetEnumerator(),
             doc => doc.Owner == loggedInUser
         );
 
-        
         Console.WriteLine("\nYour Owned Documents:");
 
-        // Iterate through the enumerator and print document details
         while (enumerator.MoveNext())
         {
             Document doc = enumerator.Current;
-
-            // check format type if not set to null 
             string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-
-            // print title and format
             Console.WriteLine($"- {doc.Title}");
             Console.WriteLine($"  Format: {format}");
-
-            // If there are collaborators list them
             if (doc.Collaborators.Any())
             {
                 Console.WriteLine($"  Collaborators: {string.Join(", ", doc.Collaborators.Select(c => c.Name))}");
             }
-            // If there are any decorator list them
             if (doc.AppliedDecorators.Any())
             {
                 Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
@@ -203,17 +181,14 @@ class Program
 
     public static void ListCollabDocuments()
     {
-        // Check if user is logged in 
         if (loggedInUser == null)
         {
             Console.WriteLine("No user logged in.");
             return;
         }
 
-        // Create an aggregate from the documents list
-        var aggregate = new DocumentAggregate(documents);
+        var aggregate = documentManager.GetDocumentAggregate();
 
-        // Create a FilterEnumerator to get documents where loggedInUser is a collaborator or approver but not owner
         using var enumerator = new FilterEnumerator(
             aggregate.GetEnumerator(),
             doc => (doc.Collaborators.Contains(loggedInUser) || doc.Approver == loggedInUser)
@@ -222,23 +197,15 @@ class Program
 
         Console.WriteLine("\nDocuments I'm In:");
 
-        // Iterate through the enumerator and print document details
         while (enumerator.MoveNext())
         {
             Document doc = enumerator.Current;
-
-            // check format type if not set to null 
             string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-
-            // check the role of the logged in user
             string role = doc.Approver == loggedInUser ? "Approver" : "Collaborator";
-
             Console.WriteLine($"- {doc.Title}");
             Console.WriteLine($"  Owner: {doc.Owner.Name}");
             Console.WriteLine($"  Your Role: {role}");
             Console.WriteLine($"  Format: {format}");
-
-            // if there are any applied decorators list them
             if (doc.AppliedDecorators.Any())
             {
                 Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
@@ -302,11 +269,13 @@ class Program
 
     static void NotifyPushedBackDocuments()
     {
-        var pushedBackDocs = documents.Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser)) && !string.IsNullOrEmpty(d.Feedback));
-        // Uncomment if you want to show notifications:
+        var pushedBackDocs = documentManager.Documents
+            .Where(d => (d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser))
+                        && !string.IsNullOrEmpty(d.Feedback));
+        // Uncomment to show notifications if needed.
         // foreach (var doc in pushedBackDocs)
         // {
-        //     Console.WriteLine($"\nNotification: Your document '{doc.Title}' pushed back with comments - {doc.Feedback}");
+        //     Console.WriteLine($"\nNotification: Your document '{doc.Title}' was pushed back: {doc.Feedback}");
         // }
     }
 
@@ -324,7 +293,8 @@ class Program
         CompositeComponent header = new CompositeComponent();
         IDocumentComponent footer = new FooterComponent("==== Confidential Footer ====");
 
-        switch (Console.ReadLine())
+        string docTypeChoice = Console.ReadLine();
+        switch (docTypeChoice)
         {
             case "1":
                 factory = new TechnicalReportFactory();
@@ -343,11 +313,11 @@ class Program
         Console.Write("Enter content: ");
         string content = Console.ReadLine();
 
-        Document doc = factory.CreateDocument(title, content, loggedInUser, header, footer);
-        documents.Add(doc);
+        // Use the DocumentManager's CreateDocument method.
+        Document doc = documentManager.CreateDocument(factory, title, content, loggedInUser, header, footer);
 
         Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
-        doc.Display(); // Ensure document is displayed correctly
+        doc.Display();
     }
 
     static void ManageDocument()
@@ -567,7 +537,9 @@ class Program
 
     static Document SelectUserDocument()
     {
-        var userDocs = documents.Where(d => d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser) || d.Approver == loggedInUser).ToList();
+        var userDocs = documentManager.Documents
+            .Where(d => d.Owner == loggedInUser || d.Collaborators.Contains(loggedInUser) || d.Approver == loggedInUser)
+            .ToList();
 
         if (!userDocs.Any())
         {
@@ -670,7 +642,7 @@ class Program
         IDocumentComponent footerBob = new FooterComponent("==== Confidential Footer ====");
         IDocumentFactory techFactory = new TechnicalReportFactory();
         Document bobDoc = techFactory.CreateDocument("Bob Report", "Content for Bob's report.", bob, headerBob, footerBob);
-        documents.Add(bobDoc);
+        documentManager.AddDocument(bobDoc);
 
         // Create a Grant Proposal for Jeff.
         CompositeComponent headerJeff = new CompositeComponent();
@@ -679,7 +651,7 @@ class Program
         IDocumentComponent footerJeff = new FooterComponent("==== Confidential Footer ====");
         IDocumentFactory grantFactory = new GrantProposalFactory();
         Document jeffDoc = grantFactory.CreateDocument("Jeff Grant", "Content for Jeff's proposal.", jeff, headerJeff, footerJeff);
-        documents.Add(jeffDoc);
+        documentManager.AddDocument(jeffDoc);
 
         // Create a Technical Report for John.
         CompositeComponent headerJohn = new CompositeComponent();
@@ -687,7 +659,7 @@ class Program
         headerJohn.Add(new HeaderComponent("Author: John"));
         IDocumentComponent footerJohn = new FooterComponent("==== Confidential Footer ====");
         Document johnDoc = techFactory.CreateDocument("John Report", "Content for John's report.", john, headerJohn, footerJohn);
-        documents.Add(johnDoc);
+        documentManager.AddDocument(johnDoc);
 
         // Add Jeff as a collaborator to John's document.
         johnDoc.AddCollaborator(john, jeff);
@@ -696,7 +668,5 @@ class Program
         Console.WriteLine("Documents: Jeff Grant, John Report, Bob Report");
         Console.WriteLine("==================================================");
         Console.WriteLine("Test Data Created");
-
     }
-
 }
