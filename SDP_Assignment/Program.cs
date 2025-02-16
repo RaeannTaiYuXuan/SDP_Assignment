@@ -55,7 +55,8 @@ class Program
                     ListUsers();
                     break;
                 case "4":
-                    ListAllDocuments();
+                    // Instead of local listing, delegate to DocumentManager.
+                    documentManager.ListAllDocuments();
                     break;
                 case "5":
                     running = false;
@@ -100,119 +101,9 @@ class Program
             Console.WriteLine($"- {user.Name}");
     }
 
-    // Jason's Iterators Stuff
-
-    public static void ListAllDocuments()
-    {
-        Console.WriteLine("\nSelect Document Type to List:");
-        Console.WriteLine("1. All Documents");
-        Console.WriteLine("2. Technical Report");
-        Console.WriteLine("3. Grant Proposal");
-        Console.Write("Select an option: ");
-        string choice = Console.ReadLine();
-        Console.WriteLine();
-
-        string typeFilter = choice switch
-        {
-            "1" => "All",
-            "2" => "TechnicalReport",
-            "3" => "GrantProposal",
-            _ => string.Empty
-        };
-
-        if (string.IsNullOrEmpty(typeFilter))
-        {
-            Console.WriteLine("Invalid option.");
-            return;
-        }
-
-        var aggregate = documentManager.GetDocumentAggregate();
-
-        using IEnumerator<Document> enumerator = typeFilter == "All"
-            ? aggregate.GetEnumerator()
-            : new FilterEnumerator(
-                aggregate.GetEnumerator(),
-                doc => doc.GetType().Name.Equals(typeFilter, StringComparison.OrdinalIgnoreCase)
-            );
-
-        Console.WriteLine($"\nDocuments ({(typeFilter == "All" ? "All" : typeFilter)}):");
-
-        while (enumerator.MoveNext())
-        {
-            Document doc = enumerator.Current;
-            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-            Console.WriteLine($"- {doc.Title} (Owner: {doc.Owner.Name}, Format: {format})");
-        }
-    }
-
-    public static void ListOwnedDocuments()
-    {
-        if (loggedInUser == null)
-        {
-            Console.WriteLine("No user logged in.");
-            return;
-        }
-
-        var aggregate = documentManager.GetDocumentAggregate();
-
-        using var enumerator = new FilterEnumerator(
-            aggregate.GetEnumerator(),
-            doc => doc.Owner == loggedInUser
-        );
-
-        Console.WriteLine("\nYour Owned Documents:");
-
-        while (enumerator.MoveNext())
-        {
-            Document doc = enumerator.Current;
-            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-            Console.WriteLine($"- {doc.Title}");
-            Console.WriteLine($"  Format: {format}");
-            if (doc.Collaborators.Any())
-            {
-                Console.WriteLine($"  Collaborators: {string.Join(", ", doc.Collaborators.Select(c => c.Name))}");
-            }
-            if (doc.AppliedDecorators.Any())
-            {
-                Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
-            }
-        }
-    }
-
-    public static void ListCollabDocuments()
-    {
-        if (loggedInUser == null)
-        {
-            Console.WriteLine("No user logged in.");
-            return;
-        }
-
-        var aggregate = documentManager.GetDocumentAggregate();
-
-        using var enumerator = new FilterEnumerator(
-            aggregate.GetEnumerator(),
-            doc => (doc.Collaborators.Contains(loggedInUser) || doc.Approver == loggedInUser)
-                   && doc.Owner != loggedInUser
-        );
-
-        Console.WriteLine("\nDocuments I'm In:");
-
-        while (enumerator.MoveNext())
-        {
-            Document doc = enumerator.Current;
-            string format = doc.ConvertStrategy?.GetType().Name.Replace("ConvertStrategy", "") ?? "Not Set";
-            string role = doc.Approver == loggedInUser ? "Approver" : "Collaborator";
-            Console.WriteLine($"- {doc.Title}");
-            Console.WriteLine($"  Owner: {doc.Owner.Name}");
-            Console.WriteLine($"  Your Role: {role}");
-            Console.WriteLine($"  Format: {format}");
-            if (doc.AppliedDecorators.Any())
-            {
-                Console.WriteLine($"  Enhancements: {string.Join(", ", doc.AppliedDecorators)}");
-            }
-        }
-    }
-
+    // --------------------------
+    // Removed local iterator methods in favor of DocumentManager
+    // --------------------------
 
     static void UserMenu()
     {
@@ -240,7 +131,7 @@ class Program
                     ManageDocument();
                     break;
                 case "3":
-                    // Reuse the same document options prompt as in ListDocuments()
+                    // Use DocumentManager's methods for listing owned or collab documents.
                     Console.WriteLine("\nList My Documents Options:");
                     Console.WriteLine("1. List Owned Documents");
                     Console.WriteLine("2. List Documents I'm In");
@@ -249,9 +140,9 @@ class Program
                     Console.WriteLine();
 
                     if (subChoice == "1")
-                        ListOwnedDocuments();
+                        documentManager.ListOwnedDocuments(loggedInUser);
                     else if (subChoice == "2")
-                        ListCollabDocuments();
+                        documentManager.ListCollabDocuments(loggedInUser);
                     else
                         Console.WriteLine("Invalid option.");
                     break;
@@ -313,7 +204,7 @@ class Program
         Console.Write("Enter content: ");
         string content = Console.ReadLine();
 
-        // Use the DocumentManager's CreateDocument method.
+        // Use DocumentManager's CreateDocument method.
         Document doc = documentManager.CreateDocument(factory, title, content, loggedInUser, header, footer);
 
         Console.WriteLine($"{doc.GetType().Name} '{title}' created successfully.");
@@ -402,7 +293,7 @@ class Program
             {
                 Console.Write("Enter new content: ");
                 string newContent = Console.ReadLine();
-                document.EditContent(loggedInUser,newContent);
+                document.EditContent(loggedInUser, newContent);
             }
             else
             {

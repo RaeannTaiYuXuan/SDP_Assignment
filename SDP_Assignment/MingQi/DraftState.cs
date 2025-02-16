@@ -9,7 +9,14 @@ namespace SDP_Assignment.MingQi
 {
     public class DraftState : IDocumentState
     {
-        public void SubmitForApproval(Document document, User approver, List<NotifyObserver> observers)
+        private Document document;
+
+        public DraftState(Document document)
+        {
+            this.document = document;
+        }
+
+        public void SubmitForApproval(User approver)
         {
             if (document.Approver != null && approver == null)
             {
@@ -27,31 +34,31 @@ namespace SDP_Assignment.MingQi
             {
                 Console.WriteLine("Invalid approver. Approver cannot be the owner or a collaborator.");
             }
-            document.SetState(new UnderReviewState());
+            document.SetState(document.UnderReviewState);
 
         }
 
-        public void Approve(Document document, List<NotifyObserver> observers)
+        public void Approve()
         {
             Console.WriteLine("Cannot approve a document in Draft state.");
         }
 
-        public void PushBack(Document document, string comments, List<NotifyObserver> observers)
+        public void PushBack(string comments)
         {
             Console.WriteLine("Cannot push back a document in Draft state.");
         }
 
-        public void Reject(Document document, string feedback, List<NotifyObserver> observers)
+        public void Reject(string feedback)
         {
             Console.WriteLine("Cannot reject a document in Draft state.");
         }
 
-        public void ResumeEditing(Document document, List<NotifyObserver> observers)
+        public void ResumeEditing()
         {
             Console.WriteLine("Document is already in Draft state.");
         }
 
-        public void EditContent(Document document, string newContent, List<NotifyObserver> observers)
+        public void EditContent(string newContent)
         {
             document.Content = newContent;
             document.ClearFeedback();
@@ -60,7 +67,7 @@ namespace SDP_Assignment.MingQi
                $"Document '{document.Title}' has been edited.");
         }
 
-        public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
+        public void AddCollaborator(User collaborator)
         {
             if (document.Owner == collaborator || document.Collaborators.Contains(collaborator))
             {

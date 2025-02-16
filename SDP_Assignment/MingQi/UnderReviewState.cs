@@ -9,22 +9,28 @@ namespace SDP_Assignment.MingQi
 {
     public class UnderReviewState : IDocumentState
     {
-        public void SubmitForApproval(Document document, User approver, List<NotifyObserver> observers)
+        private Document document;
+        public UnderReviewState(Document document)
+        {
+            this.document = document;
+        }
+
+        public void SubmitForApproval(User approver)
         {
             Console.WriteLine("Document is already under review.");
         }
 
-        public void Approve(Document document, List<NotifyObserver> observers)
+        public void Approve()
         {
-            document.SetState(new ApprovedState());
+            document.SetState(document.ApprovedState);
 
             document.NotifyObservers($"Document '{document.Title}' has been approved by {document.Approver.Name}.", excludeUser: document.Approver);
    
         }
 
-        public void PushBack(Document document, string comments, List<NotifyObserver> observers)
+        public void PushBack(string comments)
         {
-            document.SetState(new DraftState());
+            document.SetState(document.DraftState);
             document.Feedback = comments;
 
             string message = $"Document '{document.Title}' has been pushed back with comments: {comments}";
@@ -33,26 +39,26 @@ namespace SDP_Assignment.MingQi
 
         }
 
-        public void Reject(Document document, string feedback, List<NotifyObserver> observers)
+        public void Reject(string feedback)
         {
-            document.SetState(new RejectedState());
+            document.SetState(document.RejectedState);
             document.Approver = null;
 
             document.NotifyObservers($"Document '{document.Title}' has been rejected with reason: {feedback}", excludeUser: document.Approver);
         }
 
 
-        public void ResumeEditing(Document document, List<NotifyObserver> observers)
+        public void ResumeEditing()
         {
             Console.WriteLine("Cannot resume editing a document under review.");
         }
 
-        public void EditContent(Document document, string newContent, List<NotifyObserver> observers)
+        public void EditContent(string newContent)
         {
             Console.WriteLine("Cannot edit the document while it's under review.");
         }
 
-        public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
+        public void AddCollaborator(User collaborator)
         {
             if (document.Owner == collaborator || document.Collaborators.Contains(collaborator))
             {
