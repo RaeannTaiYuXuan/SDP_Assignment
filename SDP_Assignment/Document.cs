@@ -5,6 +5,7 @@ using SDP_Assignment;
 using SDP_Assignment.RAEANN.COMPOSITE;
 using System.Reflection.PortableExecutable;
 using System.Reflection.Metadata;
+using System.ComponentModel;
 
 public abstract class Document : ISubject
 {
@@ -15,10 +16,18 @@ public abstract class Document : ISubject
     private string content;
     private IDocumentComponent header;
     private IDocumentComponent footer;
-    private User owner;
+    private User owner; 
     private List<User> collaborators;
     private User approver;
     private string feedback;
+
+
+
+    // Track applied decorators======================================
+    private List<string> appliedDecorators = new List<string>();
+    public List<string> AppliedDecorators => appliedDecorators;
+    //================================================================
+
 
     public string Title { get; set; }
 
@@ -41,7 +50,7 @@ public abstract class Document : ISubject
         Content = string.Empty;
         currentState = new DraftState(); // Initial state
 
-        AttachObserver(owner);
+        RegisterObserver(owner);
     }
 
     public void SetState(IDocumentState newState)
@@ -50,7 +59,7 @@ public abstract class Document : ISubject
     }
 
 
-    public void AttachObserver(NotifyObserver observer)
+    public void RegisterObserver(NotifyObserver observer)
     {
         if (!observers.Contains(observer))
         {
@@ -58,18 +67,18 @@ public abstract class Document : ISubject
         }
     }
 
-    public void DetachObserver(NotifyObserver observer)
+    public void RemoveObserver(NotifyObserver observer)
     {
         observers.Remove(observer);
     }
 
-    public void NotifyObservers(NotificationType type, string message, User excludeUser = null)
+    public void NotifyObservers(string message, User excludeUser = null)
     {
         foreach (var observer in observers)
         {
             if (observer != excludeUser)  
             {
-                observer.Notify(type, message);
+                observer.Update(message);
             }
         }
     }
@@ -105,12 +114,20 @@ public abstract class Document : ISubject
         currentState.ResumeEditing(this, observers);
     }
 
-    public void EditContent(string newContent)
+    public void EditContent(User loggedInUser, string newContent)
     {
         Content = newContent;
-        NotifyObservers(NotificationType.DocumentEdited, $"Document '{Title}' has been edited.");
+        NotifyObservers($"Document '{Title}' has been edited by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
+
+        if (currentState is RejectedState rejectedState)
+        {
+            rejectedState.ResumeEditing(this, observers); // Reset the "must edit before resubmitting" flag
+        }
+
+        Console.WriteLine($"Document '{Title}' has been updated by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
         Display();
     }
+
 
     public bool IsUnderReview
     {
@@ -133,13 +150,40 @@ public abstract class Document : ISubject
     public virtual void Display()
     {
 
-        Console.WriteLine(Header.Render()); 
+       
+        Console.WriteLine(Header.Render()); // ✅ Displays formatted header
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render()); 
-        Console.WriteLine("======================");
+        Console.WriteLine(Footer.Render()); // ✅ Displays formatted footer
+        
+
+        // Show applied decorators
+        if (appliedDecorators.Count > 0)
+        {
+            Console.WriteLine($"Enhancements: {string.Join(", ", appliedDecorators)}");
+        }
+        else
+        {
+            Console.WriteLine("No enhancements applied.");
+        }
+
+        
     }
+
+    public bool HasDecorator(string decorator)
+    {
+        return appliedDecorators.Contains(decorator);
+    }
+
+    public void AddDecorator(string decorator)
+    {
+        if (!appliedDecorators.Contains(decorator))
+        {
+            appliedDecorators.Add(decorator);
+        }
+    }
+
 
 
     public void AddCollaborator(User loggedInUser, User collaborator)

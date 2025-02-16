@@ -9,18 +9,26 @@ namespace SDP_Assignment.MingQi
 {
     public class RejectedState : IDocumentState
     {
+        private bool mustEditBeforeResubmitting = true; // Ensure edit before resubmission
+
         public void SubmitForApproval(Document document, User approver, List<NotifyObserver> observers)
         {
+            if (mustEditBeforeResubmitting)
+            {
+                Console.WriteLine("You must edit the document before resubmitting for approval.");
+                return;
+            }
+
             if (approver != null && approver != document.Owner && !document.Collaborators.Contains(approver))
             {
                 document.Approver = null;
                 document.Approver = approver;
                 document.SetState(new UnderReviewState());
 
-                approver.Notify(NotificationType.DocumentSubmitted, $"You have been set as the approver for document '{document.Title}'.");
+                approver.Update($"You have been set as the approver for document '{document.Title}'.");
 
                 string message = $"Document '{document.Title}' submitted for review to {approver.Name}.";
-                document.NotifyObservers(NotificationType.DocumentSubmitted, message, excludeUser: approver);
+                document.NotifyObservers( message, excludeUser: approver);
 
                 Console.WriteLine($"Document '{document.Title}' has been submitted for review to {approver.Name}.");
             }
@@ -49,9 +57,12 @@ namespace SDP_Assignment.MingQi
         {
             document.SetState(new DraftState());
 
-            document.NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{document.Title}' is back in Draft state for editing.");
+            document.NotifyObservers($"Document '{document.Title}' is back in Draft state for editing.");
 
             Console.WriteLine($"Document '{document.Title}' is now in Draft state and can be edited.");
+
+            mustEditBeforeResubmitting = false; // Reset flag to allow resubmission
+        
         }
 
         public void EditContent(Document document, string newContent, List<NotifyObserver> observers)
@@ -59,10 +70,13 @@ namespace SDP_Assignment.MingQi
             document.Content = newContent;
             document.ClearFeedback();
 
-            document.NotifyObservers(NotificationType.DocumentEdited, $"Document '{document.Title}' has been updated.");
+            mustEditBeforeResubmitting = false; //  Allow resubmission after editing
 
-            Console.WriteLine($"Document '{document.Title}' has been updated.");
+            document.NotifyObservers($"Document '{document.Title}' has been updated.");
+
+            Console.WriteLine($"Document '{document.Title}' has been edited and updated.");
         }
+
 
         public void AddCollaborator(Document document, User collaborator, List<NotifyObserver> observers)
         {
@@ -73,14 +87,14 @@ namespace SDP_Assignment.MingQi
             }
 
             document.Collaborators.Add(collaborator);
-            document.AttachObserver(collaborator);
+            document.RegisterObserver(collaborator);
 
-            collaborator.StoreNotification(NotificationType.CollaboratorAdded,
+            collaborator.StoreNotification(
                 $"You have been added as a collaborator to document '{document.Title}'.");
 
             Console.WriteLine($"Collaborator '{collaborator.Name}' added to document '{document.Title}'.");
 
-            document.NotifyObservers(NotificationType.CollaboratorAdded,
+            document.NotifyObservers(
                             $"Collaborator '{collaborator.Name}' added to document '{document.Title}'.", excludeUser: document.Approver);
         }
     }
