@@ -9,6 +9,7 @@ using System.ComponentModel;
 
 public abstract class Document : ISubject
 {
+
     private IDocumentState currentState;
     private List<NotifyObserver> observers = new List<NotifyObserver>();
 
@@ -39,16 +40,26 @@ public abstract class Document : ISubject
     public User Approver { get; internal set; }
     public string Feedback { get; internal set; }
     public ConvertStrategy ConvertStrategy { get; set; }
+    public IDocumentState DraftState { get; private set; }
+    public IDocumentState UnderReviewState { get; private set; }
+    public IDocumentState ApprovedState { get; private set; }
+    public IDocumentState RejectedState { get; private set; }
 
     public Document(string title, IDocumentComponent header, IDocumentComponent footer, User owner)
     {
+        DraftState = new DraftState(this);
+        UnderReviewState = new UnderReviewState(this);
+        ApprovedState = new ApprovedState(this);
+        RejectedState = new RejectedState(this);
+
         Title = title;
         Header = header ?? new HeaderComponent("DEFAULT HEADER");
         Footer = footer ?? new FooterComponent("DEFAULT FOOTER");
         Owner = owner;
         Collaborators = new List<User>();
         Content = string.Empty;
-        currentState = new DraftState(); // Initial state
+
+        currentState = DraftState; // Initial state
 
         RegisterObserver(owner);
     }
@@ -85,43 +96,38 @@ public abstract class Document : ISubject
 
     public void SubmitForApproval(User approver)
     {
-        currentState.SubmitForApproval(this, approver, observers);
+        currentState.SubmitForApproval(approver);
     }
 
 
     public void Approve()
     {
-        currentState.Approve(this, observers);
-        //NotifyObservers(NotificationType.DocumentApproved, $"Document '{Title}' has been approved by {Approver.Name}.");
+        currentState.Approve();
     }
 
     public void PushBack(string comments)
     {
-        currentState.PushBack(this, comments, observers);
-        //NotifyObservers(NotificationType.DocumentPushedBack, $"Document '{Title}' has been pushed back with comments: {comments}");
-
+        currentState.PushBack(comments);
     }
 
     public void Reject(string feedback)
     {
-        currentState.Reject(this, feedback, observers);
-        //NotifyObservers(NotificationType.DocumentRejected, $"Document '{Title}' has been rejected with reason: {feedback}");
-
+        currentState.Reject(feedback);
     }
 
     public void ResumeEditing()
     {
-        currentState.ResumeEditing(this, observers);
+        currentState.ResumeEditing();
     }
 
     public void EditContent(User loggedInUser, string newContent)
     {
+        currentState.EditContent(newContent);
         Content = newContent;
-        NotifyObservers($"Document '{Title}' has been edited by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
 
         if (currentState is RejectedState rejectedState)
         {
-            rejectedState.ResumeEditing(this, observers); // Reset the "must edit before resubmitting" flag
+            rejectedState.ResumeEditing(); // Reset the "must edit before resubmitting" flag
         }
 
         Console.WriteLine($"Document '{Title}' has been updated by {(loggedInUser == Owner ? "Owner" : "Collaborator")} {loggedInUser.Name}.");
@@ -151,11 +157,11 @@ public abstract class Document : ISubject
     {
 
        
-        Console.WriteLine(Header.Render()); // ✅ Displays formatted header
+        Console.WriteLine(Header.Render());
         Console.WriteLine($"Title: {Title}");
         Console.WriteLine("Content:");
         Console.WriteLine(Content);
-        Console.WriteLine(Footer.Render()); // ✅ Displays formatted footer
+        Console.WriteLine(Footer.Render()); 
         
 
         // Show applied decorators
@@ -167,8 +173,6 @@ public abstract class Document : ISubject
         {
             Console.WriteLine("No enhancements applied.");
         }
-
-        
     }
 
     public bool HasDecorator(string decorator)
@@ -184,8 +188,6 @@ public abstract class Document : ISubject
         }
     }
 
-
-
     public void AddCollaborator(User loggedInUser, User collaborator)
     {
 
@@ -197,12 +199,11 @@ public abstract class Document : ISubject
 
         if (collaborator != null && collaborator != Owner && !Collaborators.Contains(collaborator))
         {
-            currentState.AddCollaborator(this, collaborator, observers);
+            currentState.AddCollaborator(collaborator);
         }
         else
         {
             Console.WriteLine("Invalid collaborator. Collaborator cannot be the owner or already added.");
         }
     }
-
 }
